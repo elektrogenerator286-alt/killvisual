@@ -117,7 +117,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cy + 52, cardH = Math.min(ch - 62, 104);
+		int cardY = cy + 52, cardH = Math.min(ch - 62, 134);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
 		// row 0: title toggle
 		int r0 = cardY + 14;
@@ -137,6 +137,10 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.text(ctx, textRenderer, "Положение", cx + 20, r2 + 2, Ui.WHITE, false);
 		String pos = KvConfig.POSITIONS[cfg().position];
 		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), r2 + 2, Ui.ACCENT, false);
+		// row 3: custom main menu
+		int r3 = cardY + 104;
+		Ui.circle(ctx, cx + 20, r3, 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, r3 + 2, Ui.WHITE, false);
 	}
 
 	private int sliderX() { return cx + cw - 24 - Math.min(120, cw / 3); }
@@ -185,6 +189,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			int r0 = cardY + 14, r1 = cardY + 44, r2 = cardY + 74;
 			if (Ui.in(mx, my, cx + 14, r0 - 2, cw - 28, 16)) { cfg().showTitle = !cfg().showTitle; return true; }
 			if (Ui.in(mx, my, sliderX() - 6, r1 - 2, sliderW() + 12, 16)) { dragging = true; setOpacity(mx); return true; }
+			if (Ui.in(mx, my, cx + 14, cardY + 104 - 2, cw - 28, 16)) { cfg().customTitle = !cfg().customTitle; return true; }
 			if (Ui.in(mx, my, cx + 14, r2 - 2, cw - 28, 16)) {
 				cfg().position = (cfg().position + 1) % KvConfig.POSITIONS.length;
 				return true;

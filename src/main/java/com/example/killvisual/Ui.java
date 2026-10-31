@@ -14,6 +14,18 @@ final class Ui {
 	private static final Style REG = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui")));
 	private static final Style BOLD = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_bold")));
 
+	private static final Style BIG = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_big")));
+	private static final Style TITLE = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_title")));
+
+	static int widthBig(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(BIG)); }
+	static void textBig(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
+		c.drawText(tr, Text.literal(s).setStyle(BIG), x, y, color, true);
+	}
+	static int widthTitle(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(TITLE)); }
+	static void textTitle(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
+		c.drawText(tr, Text.literal(s).setStyle(TITLE), x, y, color, true);
+	}
+
 	static Text t(String s, boolean bold) { return Text.literal(s).setStyle(bold ? BOLD : REG); }
 	static int width(TextRenderer tr, String s, boolean bold) { return tr.getWidth(t(s, bold)); }
 	static void text(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean bold) {

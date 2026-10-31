@@ -22,6 +22,7 @@ public final class KvConfig {
 	};
 
 	public boolean showTitle = true;
+	public boolean customTitle = true;
 	public float opacity = 0.85f;
 	public int position = 0;
 	public List<Item> items = new ArrayList<>();
