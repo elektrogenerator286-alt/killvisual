@@ -16,7 +16,9 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private boolean dragging;
 	private TextFieldWidget nameField, noteField;
 
-	private static final int ROW = 24;
+	private static final int ROW = 22;
+	private boolean placed, moving;
+	private int offX, offY;
 
 	public KvScreen() { super(Text.literal("KillVisual")); }
 
@@ -25,13 +27,23 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 
 	@Override
 	protected void init() {
-		pw = Math.min(width - 20, 480);
-		ph = Math.min(height - 20, 300);
-		px = (width - pw) / 2;
-		py = (height - ph) / 2;
-		sx = px + 14; sy = py + 44; sw = (int) (pw * 0.34); sh = ph - 58;
-		cx = sx + sw + 10; cy = sy; cw = px + pw - 14 - cx; ch = sh;
+		pw = Math.min(width - 20, 380);
+		ph = Math.min(height - 20, 250);
+		if (!placed) { px = (width - pw) / 2; py = (height - ph) / 2; placed = true; }
+		px = Math.max(0, Math.min(width - pw, px));
+		py = Math.max(0, Math.min(height - ph, py));
+		layout();
 		rebuild();
+	}
+
+	private void layout() {
+		sx = px + 12; sy = py + 38; sw = (int) (pw * 0.34); sh = ph - 50;
+		cx = sx + sw + 8; cy = sy; cw = px + pw - 12 - cx; ch = sh;
+	}
+
+	private void moveFields() {
+		if (nameField != null) { nameField.setX(cx + 16); nameField.setY(cy + 62); nameField.setWidth(cw - 32); }
+		if (noteField != null) { noteField.setX(cx + 16); noteField.setY(cy + 106); noteField.setWidth(cw - 32); }
 	}
 
 	private void rebuild() {
@@ -63,9 +75,9 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		// panel
 		Ui.round(ctx, px - 1, py - 1, pw + 2, ph + 2, 14, Ui.argb(255, 40, 8, 14));
 		Ui.roundGradient(ctx, px, py, pw, ph, 14, Ui.argb(255, 10, 10, 12), Ui.argb(255, 96, 10, 22));
-		ctx.drawText(textRenderer, "KillVisual", px + 18, py + 16, Ui.ACCENT, true);
+		Ui.text(ctx, textRenderer, "KillVisual", px + 18, py + 14, Ui.ACCENT, true);
 		// close X
-		int xx = px + pw - 30, xy = py + 14;
+		int xx = px + pw - 28, xy = py + 12;
 		for (int i = 0; i < 10; i++) {
 			ctx.fill(xx + i, xy + i, xx + i + 2, xy + i + 1, Ui.GRAY);
 			ctx.fill(xx + 9 - i, xy + i, xx + 11 - i, xy + i + 1, Ui.GRAY);
@@ -79,7 +91,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			if (ry + ROW < sy || ry > sy + sh) continue;
 			boolean hover = Ui.in(mx, my, sx + 6, ry, sw - 12, ROW - 2);
 			if (i == total - 1) {
-				ctx.drawText(textRenderer, "+ Добавить пункт", sx + 20, ry + 8, hover ? Ui.WHITE : Ui.GRAY, true);
+				Ui.text(ctx, textRenderer, "+ Добавить пункт", sx + 20, ry + 8, hover ? Ui.WHITE : Ui.GRAY, false);
 				continue;
 			}
 			boolean selected = i == sel;
@@ -90,8 +102,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				Ui.round(ctx, sx + 6, ry, sw - 12, ROW - 2, 10, Ui.argb(255, 24, 10, 12));
 			}
 			String name = i == 0 ? "Оформление" : items().get(i - 1).name;
-			while (textRenderer.getWidth(name) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
-			ctx.drawText(textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, true);
+			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
+			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
 			boolean on = i == 0 || items().get(i - 1).done;
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
@@ -103,17 +115,17 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 
 	private void paintAppearance(DrawContext ctx, int mx, int my) {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
-		ctx.drawText(textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
-		ctx.drawText(textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, true);
+		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
 		int cardY = cy + 52, cardH = Math.min(ch - 62, 104);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
 		// row 0: title toggle
 		int r0 = cardY + 14;
 		Ui.circle(ctx, cx + 20, r0, 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
-		ctx.drawText(textRenderer, "Название на панели", cx + 40, r0 + 2, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, r0 + 2, Ui.WHITE, false);
 		// row 1: opacity slider
 		int r1 = cardY + 44;
-		ctx.drawText(textRenderer, "Прозрачность", cx + 20, r1 + 2, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "Прозрачность", cx + 20, r1 + 2, Ui.WHITE, false);
 		int tx = sliderX(), tw = sliderW();
 		Ui.round(ctx, tx, r1 + 5, tw, 4, 2, Ui.argb(255, 70, 30, 36));
 		float t = (cfg().opacity - 0.1f) / 0.9f;
@@ -122,9 +134,9 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, tx + fillW - 5, r1 + 2, 10, Ui.WHITE);
 		// row 2: position
 		int r2 = cardY + 74;
-		ctx.drawText(textRenderer, "Положение", cx + 20, r2 + 2, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "Положение", cx + 20, r2 + 2, Ui.WHITE, false);
 		String pos = KvConfig.POSITIONS[cfg().position];
-		ctx.drawText(textRenderer, pos, cx + cw - 24 - textRenderer.getWidth(pos), r2 + 2, Ui.ACCENT, true);
+		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), r2 + 2, Ui.ACCENT, false);
 	}
 
 	private int sliderX() { return cx + cw - 24 - Math.min(120, cw / 3); }
@@ -133,15 +145,15 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private void paintItem(DrawContext ctx, int mx, int my) {
 		KvConfig.Item it = items().get(sel - 1);
 		Ui.circle(ctx, cx + 16, cy + 14, 14, it.done ? Ui.ACCENT : Ui.DIM);
-		ctx.drawText(textRenderer, "Свой пункт", cx + 38, cy + 17, Ui.WHITE, true);
-		ctx.drawText(textRenderer, "вспомогатель: идеи и заметки", cx + 16, cy + 36, Ui.GRAY, true);
-		ctx.drawText(textRenderer, "Название", cx + 16, cy + 52, Ui.GRAY, true);
-		ctx.drawText(textRenderer, "Заметки", cx + 16, cy + 96, Ui.GRAY, true);
+		Ui.text(ctx, textRenderer, "Свой пункт", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "вспомогатель: идеи и заметки", cx + 16, cy + 36, Ui.GRAY, false);
+		Ui.text(ctx, textRenderer, "Название", cx + 16, cy + 52, Ui.GRAY, false);
+		Ui.text(ctx, textRenderer, "Заметки", cx + 16, cy + 96, Ui.GRAY, false);
 		int ry = cy + 140;
 		Ui.circle(ctx, cx + 18, ry, 12, it.done ? Ui.ACCENT : Ui.DIM);
-		ctx.drawText(textRenderer, "Сделано", cx + 38, ry + 2, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "Сделано", cx + 38, ry + 2, Ui.WHITE, false);
 		boolean hover = Ui.in(mx, my, cx + 16, ry + 24, 120, 14);
-		ctx.drawText(textRenderer, "Удалить пункт", cx + 18, ry + 28, hover ? Ui.WHITE : Ui.ACCENT, true);
+		Ui.text(ctx, textRenderer, "Удалить пункт", cx + 18, ry + 28, hover ? Ui.WHITE : Ui.ACCENT, false);
 	}
 
 	// ---------------- input ----------------
@@ -152,7 +164,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		if (click.button() != 0) return false;
 		double mx = click.x(), my = click.y();
 		// close
-		if (Ui.in(mx, my, px + pw - 34, py + 10, 22, 22)) { close(); return true; }
+		if (Ui.in(mx, my, px + pw - 32, py + 8, 22, 22)) { close(); return true; }
 		// sidebar
 		if (Ui.in(mx, my, sx, sy, sw, sh)) {
 			int idx = (int) ((my - sy - 6 + scroll) / ROW);
@@ -188,6 +200,13 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				return true;
 			}
 		}
+		// grab the frame / title area to move the window
+		if (Ui.in(mx, my, px, py, pw, ph) && !Ui.in(mx, my, cx, cy, cw, ch)) {
+			moving = true;
+			offX = (int) (mx - px);
+			offY = (int) (my - py);
+			return true;
+		}
 		return false;
 	}
 
@@ -200,12 +219,20 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	@Override
 	public boolean mouseDragged(Click click, double dx, double dy) {
 		if (dragging) { setOpacity(click.x()); return true; }
+		if (moving) {
+			px = Math.max(0, Math.min(width - pw, (int) (click.x() - offX)));
+			py = Math.max(0, Math.min(height - ph, (int) (click.y() - offY)));
+			layout();
+			moveFields();
+			return true;
+		}
 		return super.mouseDragged(click, dx, dy);
 	}
 
 	@Override
 	public boolean mouseReleased(Click click) {
 		dragging = false;
+		moving = false;
 		return super.mouseReleased(click);
 	}
 

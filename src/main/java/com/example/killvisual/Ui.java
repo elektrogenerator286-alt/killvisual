@@ -1,10 +1,24 @@
 package com.example.killvisual;
 
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.text.Style;
+import net.minecraft.text.StyleSpriteSource;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 /** Small drawing helpers: pixel-rounded rectangles and colours. */
 final class Ui {
 	private Ui() { }
+
+	private static final Style REG = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui")));
+	private static final Style BOLD = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_bold")));
+
+	static Text t(String s, boolean bold) { return Text.literal(s).setStyle(bold ? BOLD : REG); }
+	static int width(TextRenderer tr, String s, boolean bold) { return tr.getWidth(t(s, bold)); }
+	static void text(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean bold) {
+		c.drawText(tr, t(s, bold), x, y, color, true);
+	}
 
 	static final int ACCENT = 0xFFE42838;
 	static final int WHITE = 0xFFFFFFFF;
