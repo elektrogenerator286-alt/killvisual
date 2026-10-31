@@ -27,6 +27,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set +e +o pipefail
           : > /tmp/info.txt
           M=$(find ~/.gradle -name "minecraft-merged-*yarn*.jar" | head -1)
           for C in net.minecraft.client.gui.screen.Screen net.minecraft.client.gui.Element net.minecraft.client.gui.widget.ClickableWidget net.minecraft.client.gui.widget.TextFieldWidget net.minecraft.client.gui.widget.ButtonWidget net.minecraft.client.gui.widget.PressableWidget net.minecraft.client.gui.DrawContext net.minecraft.client.gui.Click net.minecraft.client.input.MouseInput net.minecraft.client.input.KeyInput net.minecraft.client.input.CharInput net.minecraft.client.gui.hud.InGameHud net.minecraft.client.network.PlayerListEntry; do
