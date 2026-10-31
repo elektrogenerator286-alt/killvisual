@@ -1,0 +1,68 @@
+name: Build mod
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.5.1
+      - name: Build
+        shell: bash
+        run: gradle build --no-daemon 2>&1 | tee build.log
+      - name: Dump API info
+        if: always()
+        shell: bash
+        run: |
+          : > /tmp/info.txt
+          M=$(find ~/.gradle -name "minecraft-merged-*yarn*.jar" | head -1)
+          for C in net.minecraft.client.gui.screen.Screen net.minecraft.client.gui.Element net.minecraft.client.gui.widget.ClickableWidget net.minecraft.client.gui.widget.TextFieldWidget net.minecraft.client.gui.widget.ButtonWidget net.minecraft.client.gui.widget.PressableWidget net.minecraft.client.gui.DrawContext net.minecraft.client.gui.Click net.minecraft.client.input.MouseInput net.minecraft.client.input.KeyInput net.minecraft.client.input.CharInput net.minecraft.client.gui.hud.InGameHud net.minecraft.client.network.PlayerListEntry; do
+            echo "=== $C" >> /tmp/info.txt
+            javap -p -cp "$M" "$C" 2>&1 | grep -v "static final\|field_\|lambda\|method_[0-9]" | cut -c1-260 >> /tmp/info.txt || true
+          done
+          echo "=== MC" >> /tmp/info.txt
+          javap -p -cp "$M" net.minecraft.client.MinecraftClient 2>&1 | grep -i "fps\|getNetworkHandler\|setScreen\|textRenderer\|getWindow" | cut -c1-200 >> /tmp/info.txt
+          for J in $(find ~/.gradle .gradle -name "fabric-api-base*.jar" -o -name "fabric-rendering-v1*.jar" 2>/dev/null | grep -v remapped | head -3); do
+            echo "JAR $J" >> /tmp/info.txt
+            unzip -l "$J" | grep -i "hud/\|Hud" | awk '{print $4}' >> /tmp/info.txt
+          done
+          mkdir -p /tmp/nested
+          for J in $(find ~/.gradle -name "fabric-rendering-v1*.jar" | head -1); do
+            javap -p -cp "$J" net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement 2>&1 | cut -c1-260 >> /tmp/info.txt
+          done
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout --orphan info-log; git rm -rf --quiet . || true
+          cp /tmp/info.txt info.txt; git add info.txt; git commit -q -m info; git push -f origin info-log
+      - name: Save build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          cp build.log /tmp/build.log
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git checkout --orphan build-log
+          git rm -rf --quiet . || true
+          cp /tmp/build.log build.log
+          git add build.log
+          git commit -q -m "build log"
+          git push -f origin build-log
+      - name: Publish jar to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" build/libs/*.jar \
+            --title "KillVisual build ${{ github.run_number }}" \
+            --notes "Fabric 1.21.11. Put the .jar into your mods folder (with Fabric API)."
