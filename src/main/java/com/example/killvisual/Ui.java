@@ -34,18 +34,15 @@ final class Ui {
 		return (a << 24) | (color & 0xFFFFFF);
 	}
 
-	private static int inset(int d, int r) {
-		if (d >= r) return 0;
-		double dy = r - d - 0.5;
-		return (int) Math.round(r - Math.sqrt(Math.max(0, r * r - dy * dy)));
+	/** Distance (in pixels, fractional) the rounded edge is pulled in at this column. */
+	private static float edge(int d, int r) {
+		if (d >= r) return 0f;
+		double dx = r - d - 0.5;
+		return (float) (r - Math.sqrt(Math.max(0, r * r - dx * dx)));
 	}
 
 	static void round(DrawContext c, int x, int y, int w, int h, int r, int color) {
-		r = Math.min(r, Math.min(w, h) / 2);
-		for (int row = 0; row < h; row++) {
-			int in = inset(Math.min(row, h - 1 - row), r);
-			c.fill(x + in, y + row, x + w - in, y + row + 1, color);
-		}
+		roundGradient(c, x, y, w, h, r, color, color);
 	}
 
 	static void outline(DrawContext c, int x, int y, int w, int h, int r, int border, int fill) {
@@ -53,17 +50,28 @@ final class Ui {
 		round(c, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
 	}
 
-	/** Horizontal gradient inside a rounded rectangle. */
+	/** Horizontal gradient inside a rounded rectangle, with anti-aliased (smooth) corners. */
 	static void roundGradient(DrawContext c, int x, int y, int w, int h, int r, int left, int right) {
 		r = Math.min(r, Math.min(w, h) / 2);
 		for (int col = 0; col < w; col++) {
-			int in = inset(Math.min(col, w - 1 - col), r);
+			float e = edge(Math.min(col, w - 1 - col), r);
 			float t = w <= 1 ? 0 : col / (float) (w - 1);
 			int a = lerp(left >>> 24, right >>> 24, t);
 			int rr = lerp((left >> 16) & 255, (right >> 16) & 255, t);
 			int g = lerp((left >> 8) & 255, (right >> 8) & 255, t);
 			int b = lerp(left & 255, right & 255, t);
-			c.fill(x + col, y + in, x + col + 1, y + h - in, argb(a, rr, g, b));
+			int full = argb(a, rr, g, b);
+			int fl = (int) Math.floor(e);
+			float frac = e - fl;
+			if (frac < 0.02f) {
+				c.fill(x + col, y + fl, x + col + 1, y + h - fl, full);
+			} else {
+				float cov = 1f - frac;
+				int part = argb(Math.round(a * cov), rr, g, b);
+				c.fill(x + col, y + fl, x + col + 1, y + fl + 1, part);
+				c.fill(x + col, y + h - fl - 1, x + col + 1, y + h - fl, part);
+				if (h - 2 * (fl + 1) > 0) c.fill(x + col, y + fl + 1, x + col + 1, y + h - fl - 1, full);
+			}
 		}
 	}
 
