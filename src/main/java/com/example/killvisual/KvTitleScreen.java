@@ -43,15 +43,15 @@ public final class KvTitleScreen extends Screen {
 		int bh = 40, barTop = height - bh - 24;
 		int titleBottom = 94, gap = 12;
 		int avail = barTop - 14 - titleBottom;
-		size = Math.max(40, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.16)), 70));
-		int totalH = 2 * size + gap;
+		size = Math.max(32, Math.min(Math.min((avail - 2 * gap) / 3, (int) (Math.min(width, height) * 0.16)), 70));
+		int totalH = 3 * size + 2 * gap;
 		int top = titleBottom + Math.max(0, (avail - totalH) / 2);
 		tx[0] = Math.max(24, (int) (width * 0.07));
 		ty[0] = top;
 		tx[1] = tx[0];
 		ty[1] = top + size + gap;
-		tx[2] = (int) (width * 0.6);
-		ty[2] = titleBottom + Math.max(0, (int) ((avail - size) * 0.6));
+		tx[2] = tx[0];
+		ty[2] = ty[1] + size + gap;
 		MinecraftClient mc = MinecraftClient.getInstance();
 		try {
 			skin = mc.getSkinProvider().supplySkinTextures(mc.getGameProfile(), false);
@@ -333,7 +333,7 @@ public final class KvTitleScreen extends Screen {
 				int lw = Ui.widthBig(textRenderer, LABELS[i]);
 				int pw2 = lw + 24, ph2 = 24;
 				int lx, ly;
-				if (i < 2) {
+				if (true) {
 					lx = x + size + 12 + (int) ((1 - a) * -10);
 					ly = y + size / 2 - ph2 / 2;
 				} else {
@@ -364,7 +364,7 @@ public final class KvTitleScreen extends Screen {
 			Ui.text(ctx, textRenderer, hint, nx, by + 26, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
 		} else {
 			String nick = mc.getSession().getUsername();
-			Ui.textBig(ctx, textRenderer, nick, nx, by + 6, Ui.WHITE);
+			Ui.text(ctx, textRenderer, nick, nx, by + 9, Ui.WHITE, true);
 			Ui.text(ctx, textRenderer, "в сети", nx + 11, by + 24, Ui.GRAY, false);
 			Ui.circle(ctx, nx, by + 25, 7, Ui.argb(255, 70, 220, 110));
 			String edit = "изменить";
