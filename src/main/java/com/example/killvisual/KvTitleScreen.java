@@ -21,25 +21,62 @@ public final class KvTitleScreen extends Screen {
 	private int size;
 	private long lastNs = System.nanoTime();
 	private Supplier<SkinTextures> skin;
+	private final java.util.Random rnd = new java.util.Random();
+	private Star[] stars = new Star[0];
+
+	private static final class Star {
+		float x, y, vx, vy, size, phase;
+		boolean streak;
+		int color;
+	}
 
 	public KvTitleScreen() { super(Text.literal("KillVisuals")); }
 
 	@Override
 	protected void init() {
-		size = Math.max(46, Math.min(80, (int) (Math.min(width, height) * 0.17)));
-		int gap = 14;
+		int bh = 52, barTop = height - bh - 24;
+		int titleBottom = 72, gap = 12;
+		int avail = barTop - 14 - titleBottom;
+		size = Math.max(36, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.17)), 80));
+		int totalH = 2 * size + gap;
+		int top = titleBottom + Math.max(0, (avail - totalH) / 2);
 		tx[0] = Math.max(24, (int) (width * 0.07));
-		ty[0] = (int) (height * 0.36);
+		ty[0] = top;
 		tx[1] = tx[0];
-		ty[1] = ty[0] + size + gap;
-		tx[2] = (int) (width * 0.58);
-		ty[2] = (int) (height * 0.58);
+		ty[1] = top + size + gap;
+		tx[2] = (int) (width * 0.55);
+		ty[2] = titleBottom + Math.max(0, (avail - size) / 2);
 		MinecraftClient mc = MinecraftClient.getInstance();
 		try {
 			skin = mc.getSkinProvider().supplySkinTextures(mc.getGameProfile(), false);
 		} catch (Exception e) {
 			skin = null;
 		}
+		int n = Math.max(30, Math.min(90, width * height / 7000));
+		stars = new Star[n];
+		for (int i = 0; i < n; i++) {
+			stars[i] = newStar(true);
+		}
+	}
+
+	private Star newStar(boolean anywhere) {
+		Star st = new Star();
+		st.streak = rnd.nextFloat() < 0.14f;
+		st.x = rnd.nextFloat() * (width + 60) - 30;
+		st.y = anywhere ? rnd.nextFloat() * height : -10 - rnd.nextFloat() * 40;
+		if (st.streak) {
+			st.vy = 90 + rnd.nextFloat() * 110;
+			st.vx = 30 + rnd.nextFloat() * 50;
+			st.size = 1.5f;
+		} else {
+			st.vy = 8 + rnd.nextFloat() * 28;
+			st.vx = 2 + rnd.nextFloat() * 8;
+			st.size = rnd.nextFloat() < 0.25f ? 2f : 1f;
+		}
+		st.phase = 1.5f + rnd.nextFloat() * 3f;
+		int pick = rnd.nextInt(3);
+		st.color = pick == 0 ? 0xFFFFFF : pick == 1 ? 0xFFC8DC : 0xD8C0FF;
+		return st;
 	}
 
 	// ---------- background ----------
@@ -115,6 +152,86 @@ public final class KvTitleScreen extends Screen {
 	@Override
 	public void renderBackground(DrawContext ctx, int mx, int my, float delta) {
 		paintBackground(ctx);
+		// soft vignette
+		ctx.fillGradient(0, 0, width, height / 3, Ui.argb(110, 0, 0, 0), Ui.argb(0, 0, 0, 0));
+		ctx.fillGradient(0, height * 2 / 3, width, height, Ui.argb(0, 0, 0, 0), Ui.argb(150, 0, 0, 0));
+	}
+
+	private void paintStars(DrawContext ctx, float dt, double t) {
+		for (int i = 0; i < stars.length; i++) {
+			Star s = stars[i];
+			s.x += s.vx * dt;
+			s.y += s.vy * dt;
+			if (s.y > height + 8 || s.x > width + 20) { stars[i] = newStar(false); continue; }
+			float tw = 0.55f + 0.45f * (float) Math.sin(t * s.phase + i);
+			int xi = Math.round(s.x), yi = Math.round(s.y);
+			if (s.streak) {
+				float len = 10;
+				float nx = -s.vx, ny = -s.vy, l = (float) Math.sqrt(nx * nx + ny * ny);
+				nx /= l; ny /= l;
+				for (int k = 0; k < 10; k++) {
+					float f = 1f - k / 10f;
+					int px = Math.round(s.x + nx * k * 2.2f), py = Math.round(s.y + ny * k * 2.2f);
+					ctx.fill(px, py, px + 2, py + 2, Ui.withAlpha(0xFF000000 | s.color, f * 0.8f));
+				}
+				ctx.fill(xi - 1, yi - 1, xi + 2, yi + 2, Ui.withAlpha(0xFFFFFFFF, 0.95f));
+			} else {
+				int sz = (int) s.size;
+				int col = 0xFF000000 | s.color;
+				ctx.fill(xi, yi, xi + sz, yi + sz, Ui.withAlpha(col, tw));
+				if (sz >= 2) {
+					int a2 = Math.round(tw * 255 * 0.5f);
+					int arm = (a2 << 24) | s.color;
+					ctx.fill(xi - 2, yi, xi, yi + sz, arm);
+					ctx.fill(xi + sz, yi, xi + sz + 2, yi + sz, arm);
+					ctx.fill(xi, yi - 2, xi + sz, yi, arm);
+					ctx.fill(xi, yi + sz, xi + sz, yi + sz + 2, arm);
+				}
+			}
+		}
+	}
+
+	private void paintTitle(DrawContext ctx, double t) {
+		String title = "KILLVISUALS";
+		int n = title.length(), spacing = 3;
+		int[] cw = new int[n];
+		int total = 0;
+		for (int i = 0; i < n; i++) {
+			cw[i] = Ui.widthTitle(textRenderer, String.valueOf(title.charAt(i)));
+			total += cw[i] + (i < n - 1 ? spacing : 0);
+		}
+		int x0 = width - total - 30, y0 = 24;
+		// glow behind
+		int x = x0;
+		for (int i = 0; i < n; i++) {
+			String ch = String.valueOf(title.charAt(i));
+			int glow = Ui.withAlpha(Ui.ACCENT, 0.10f);
+			Ui.textTitle(ctx, textRenderer, ch, x - 2, y0, glow);
+			Ui.textTitle(ctx, textRenderer, ch, x + 2, y0, glow);
+			Ui.textTitle(ctx, textRenderer, ch, x, y0 - 2, glow);
+			Ui.textTitle(ctx, textRenderer, ch, x, y0 + 2, glow);
+			x += cw[i] + spacing;
+		}
+		// letters with a moving shimmer: white -> pink -> red
+		x = x0;
+		for (int i = 0; i < n; i++) {
+			float p = i / (float) (n - 1);
+			float shimmer = 0.5f + 0.5f * (float) Math.sin(t * 1.6 - i * 0.55);
+			int r = 255;
+			int g = Math.round(255 - (255 - 120) * (p * 0.7f + shimmer * 0.3f));
+			int b = Math.round(255 - (255 - 150) * (p * 0.7f + shimmer * 0.3f));
+			Ui.textTitle(ctx, textRenderer, String.valueOf(title.charAt(i)), x, y0, Ui.argb(255, r, g, b));
+			x += cw[i] + spacing;
+		}
+		// underline
+		Ui.roundGradient(ctx, x0, y0 + 38, total, 3, 1, Ui.argb(0, 228, 40, 56), Ui.ACCENT);
+		Ui.roundGradient(ctx, x0, y0 + 38, total / 2, 3, 1, Ui.argb(0, 255, 255, 255), Ui.argb(160, 255, 200, 210));
+	}
+
+	private void glow(DrawContext c, int x, int y, int w, int h, int r, int color, float strength) {
+		for (int i = 5; i >= 1; i--) {
+			Ui.round(c, x - i * 2, y - i * 2, w + i * 4, h + i * 4, r + i * 2, Ui.withAlpha(color, strength * 0.05f));
+		}
 	}
 
 	@Override
@@ -122,11 +239,10 @@ public final class KvTitleScreen extends Screen {
 		long now = System.nanoTime();
 		float dt = Math.min(0.1f, (now - lastNs) / 1e9f);
 		lastNs = now;
+		double t = now / 1e9;
 
-		// title
-		String title = "KILLVISUALS";
-		int tw = Ui.widthTitle(textRenderer, title);
-		Ui.textTitle(ctx, textRenderer, title, width - tw - 30, 26, Ui.WHITE);
+		paintStars(ctx, dt, t);
+		paintTitle(ctx, t);
 
 		// square buttons
 		float k = size / 64f;
@@ -134,39 +250,54 @@ public final class KvTitleScreen extends Screen {
 			boolean hover = Ui.in(mx, my, tx[i], ty[i], size, size);
 			anim[i] += ((hover ? 1f : 0f) - anim[i]) * Math.min(1f, dt * 12f);
 			float a = anim[i];
-			int bg = hover ? Ui.argb(235, 96, 10, 22) : Ui.argb(200, 12, 8, 12);
-			Ui.round(ctx, tx[i] - 1, ty[i] - 1, size + 2, size + 2, 16,
-					hover ? Ui.ACCENT : Ui.argb(200, 90, 40, 50));
-			Ui.round(ctx, tx[i], ty[i], size, size, 15, bg);
-			int cx = tx[i] + size / 2, cy = ty[i] + size / 2;
-			int hole = hover ? Ui.argb(255, 96, 10, 22) : Ui.argb(255, 18, 12, 16);
+			int x = tx[i], y = ty[i] - Math.round(3 * a);
+			if (a > 0.02f) glow(ctx, x, y, size, size, 16, Ui.ACCENT, a);
+			Ui.round(ctx, x - 1, y - 1, size + 2, size + 2, 17,
+					hover ? Ui.ACCENT : Ui.argb(210, 110, 50, 62));
+			Ui.roundGradient(ctx, x, y, size, size, 16,
+					hover ? Ui.argb(245, 120, 14, 30) : Ui.argb(225, 16, 10, 16),
+					hover ? Ui.argb(245, 70, 10, 40) : Ui.argb(225, 40, 12, 24));
+			Ui.round(ctx, x + 10, y + 2, size - 20, 1, 0, Ui.withAlpha(Ui.WHITE, hover ? 0.35f : 0.16f));
+			int cx = x + size / 2, cy = y + size / 2;
+			int hole = hover ? Ui.argb(255, 100, 12, 34) : Ui.argb(255, 26, 11, 20);
 			switch (i) {
 				case 0 -> gamepad(ctx, cx, cy, k, hole);
 				case 1 -> gear(ctx, cx, cy, k, hole);
 				default -> globe(ctx, cx, cy, k, hole);
 			}
 			if (a > 0.03f) {
-				int col = Ui.withAlpha(Ui.WHITE, a);
 				int lw = Ui.widthBig(textRenderer, LABELS[i]);
+				int pw2 = lw + 24, ph2 = 24;
+				int lx, ly;
 				if (i < 2) {
-					Ui.textBig(ctx, textRenderer, LABELS[i], tx[i] + size + 14 + (int) ((1 - a) * -8), ty[i] + size / 2 - 5, col);
+					lx = x + size + 12 + (int) ((1 - a) * -10);
+					ly = y + size / 2 - ph2 / 2;
 				} else {
-					Ui.textBig(ctx, textRenderer, LABELS[i], tx[i] + size / 2 - lw / 2, ty[i] + size + 8 + (int) ((1 - a) * -6), col);
+					lx = x + size / 2 - pw2 / 2;
+					ly = y + size + 10 + (int) ((1 - a) * -8);
 				}
+				Ui.roundGradient(ctx, lx, ly, pw2, ph2, 12,
+						Ui.withAlpha(Ui.argb(255, 120, 14, 30), a * 0.9f), Ui.withAlpha(Ui.argb(255, 70, 10, 40), a * 0.9f));
+				Ui.textBig(ctx, textRenderer, LABELS[i], lx + 12, ly + 7, Ui.withAlpha(Ui.WHITE, a));
 			}
 		}
 
 		// nick bar
 		MinecraftClient mc = MinecraftClient.getInstance();
 		int bh = 52, bw = Math.min((int) (width * 0.45), 360), bx = 24, by = height - bh - 24;
-		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 20, Ui.argb(200, 90, 40, 50));
-		Ui.roundGradient(ctx, bx, by, bw, bh, 19, Ui.argb(230, 12, 8, 12), Ui.argb(230, 70, 10, 22));
+		glow(ctx, bx, by, bw, bh, 20, Ui.ACCENT, 0.5f);
+		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 21, Ui.argb(210, 110, 50, 62));
+		Ui.roundGradient(ctx, bx, by, bw, bh, 20, Ui.argb(240, 14, 9, 14), Ui.argb(240, 84, 12, 30));
 		int head = bh - 14;
+		Ui.round(ctx, bx + 9, by + 6, head + 2, head + 2, 6, Ui.withAlpha(Ui.ACCENT, 0.9f));
 		SkinTextures tex = null;
 		try { if (skin != null) tex = skin.get(); } catch (Exception ignored) { }
 		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 10, by + 7, head);
 		String nick = mc.getSession().getUsername();
-		Ui.textBig(ctx, textRenderer, nick, bx + 10 + head + 14, by + bh / 2 - 5, Ui.WHITE);
+		int nx = bx + 10 + head + 14;
+		Ui.textBig(ctx, textRenderer, nick, nx, by + 11, Ui.WHITE);
+		Ui.text(ctx, textRenderer, "в сети", nx + 12, by + 30, Ui.GRAY, false);
+		Ui.circle(ctx, nx, by + 31, 7, Ui.argb(255, 70, 220, 110));
 
 		// small quit link
 		String q = "Выход";
