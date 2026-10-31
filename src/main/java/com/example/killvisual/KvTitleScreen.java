@@ -40,18 +40,18 @@ public final class KvTitleScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int bh = 52, barTop = height - bh - 24;
-		int titleBottom = 72, gap = 12;
+		int bh = 40, barTop = height - bh - 24;
+		int titleBottom = 94, gap = 12;
 		int avail = barTop - 14 - titleBottom;
-		size = Math.max(32, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.12)), 56));
+		size = Math.max(40, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.16)), 70));
 		int totalH = 2 * size + gap;
 		int top = titleBottom + Math.max(0, (avail - totalH) / 2);
 		tx[0] = Math.max(24, (int) (width * 0.07));
 		ty[0] = top;
 		tx[1] = tx[0];
 		ty[1] = top + size + gap;
-		tx[2] = (int) (width * 0.55);
-		ty[2] = titleBottom + Math.max(0, (avail - size) / 2);
+		tx[2] = (int) (width * 0.6);
+		ty[2] = titleBottom + Math.max(0, (int) ((avail - size) * 0.6));
 		MinecraftClient mc = MinecraftClient.getInstance();
 		try {
 			skin = mc.getSkinProvider().supplySkinTextures(mc.getGameProfile(), false);
@@ -88,16 +88,16 @@ public final class KvTitleScreen extends Screen {
 	// ---------- nick editing ----------
 
 	private int barX() { return 24; }
-	private int barH() { return 52; }
-	private int barW() { return Math.min((int) (width * 0.45), 360); }
+	private int barH() { return 40; }
+	private int barW() { return Math.min((int) (width * 0.30), 280); }
 	private int barY() { return height - barH() - 24; }
 
 	private void startEditing() {
 		editing = true;
 		nickError = "";
-		int head = barH() - 14;
+		int head = barH() - 12;
 		int nx = barX() + 10 + head + 14;
-		nickField = new TextFieldWidget(textRenderer, nx, barY() + 8, barW() - (nx - barX()) - 14, 20, Text.empty());
+		nickField = new TextFieldWidget(textRenderer, nx, barY() + 4, barW() - (nx - barX()) - 12, 20, Text.empty());
 		nickField.setMaxLength(16);
 		nickField.setText(MinecraftClient.getInstance().getSession().getUsername());
 		addDrawableChild(nickField);
@@ -197,13 +197,18 @@ public final class KvTitleScreen extends Screen {
 
 	private void globe(DrawContext c, int cx, int cy, float k, int bg) {
 		int w = Ui.WHITE;
-		Ui.circle(c, cx - u(16, k), cy - u(16, k), u(32, k), w);
-		Ui.circle(c, cx - u(14, k), cy - u(14, k), u(28, k), bg);
-		Ui.outline(c, cx - u(7, k), cy - u(14, k), u(14, k), u(28, k), u(7, k), w, bg);
-		c.fill(cx - u(14, k), cy, cx + u(14, k), cy + Math.max(1, u(1.5f, k)), w);
-		c.fill(cx - u(11, k), cy - u(7, k), cx + u(11, k), cy - u(7, k) + Math.max(1, u(1.2f, k)), w);
-		c.fill(cx - u(11, k), cy + u(7, k), cx + u(11, k), cy + u(7, k) + Math.max(1, u(1.2f, k)), w);
-		c.fill(cx, cy - u(14, k), cx + Math.max(1, u(1.2f, k)), cy + u(14, k), w);
+		int px = Math.max(1, Math.round(1.6f * k)); // line thickness
+		int r = u(16, k);
+		// outer ring
+		Ui.circle(c, cx - r, cy - r, 2 * r, w);
+		Ui.circle(c, cx - r + px + 1, cy - r + px + 1, 2 * r - 2 * (px + 1), bg);
+		// meridian
+		int mw = u(8, k);
+		Ui.outline(c, cx - mw, cy - r + px + 1, 2 * mw, 2 * r - 2 * (px + 1), mw, w, bg);
+		Ui.round(c, cx - mw + px, cy - r + 2 * (px + 1), 2 * mw - 2 * px, 2 * r - 4 * (px + 1), Math.max(0, mw - px), bg);
+		// centre line and equator
+		c.fill(cx - px / 2, cy - r + px, cx - px / 2 + px, cy + r - px, w);
+		c.fill(cx - r + px, cy - px / 2, cx + r - px, cy - px / 2 + px, w);
 	}
 
 	// ---------- screen ----------
@@ -259,7 +264,7 @@ public final class KvTitleScreen extends Screen {
 			cw[i] = Ui.widthTitle(textRenderer, String.valueOf(title.charAt(i)));
 			total += cw[i] + (i < n - 1 ? spacing : 0);
 		}
-		int x0 = width - total - 30, y0 = 24;
+		int x0 = width - total - 30, y0 = 42;
 		// glow behind
 		int x = x0;
 		for (int i = 0; i < n; i++) {
@@ -345,26 +350,26 @@ public final class KvTitleScreen extends Screen {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		int bh = barH(), bw = barW(), bx = barX(), by = barY();
 		boolean barHover = Ui.in(mx, my, bx, by, bw, bh);
-		glow(ctx, bx, by, bw, bh, 20, Ui.ACCENT, barHover ? 0.9f : 0.5f);
-		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 21, barHover ? Ui.ACCENT : Ui.argb(210, 110, 50, 62));
-		Ui.roundGradient(ctx, bx, by, bw, bh, 20, Ui.argb(240, 14, 9, 14), Ui.argb(240, 84, 12, 30));
-		int head = bh - 14;
-		Ui.round(ctx, bx + 9, by + 6, head + 2, head + 2, 6, Ui.withAlpha(Ui.ACCENT, 0.9f));
+		glow(ctx, bx, by, bw, bh, 16, Ui.ACCENT, barHover ? 0.9f : 0.5f);
+		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 17, barHover ? Ui.ACCENT : Ui.argb(210, 110, 50, 62));
+		Ui.roundGradient(ctx, bx, by, bw, bh, 16, Ui.argb(240, 14, 9, 14), Ui.argb(240, 84, 12, 30));
+		int head = bh - 12;
+		Ui.round(ctx, bx + 7, by + 5, head + 2, head + 2, 5, Ui.withAlpha(Ui.ACCENT, 0.9f));
 		SkinTextures tex = null;
 		try { if (skin != null) tex = skin.get(); } catch (Exception ignored) { }
-		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 10, by + 7, head);
-		int nx = bx + 10 + head + 14;
+		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 8, by + 6, head);
+		int nx = bx + 8 + head + 12;
 		if (editing) {
 			String hint = nickError.isEmpty() ? "Enter - сохранить, Esc - отмена" : nickError;
-			Ui.text(ctx, textRenderer, hint, nx, by + 33, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
+			Ui.text(ctx, textRenderer, hint, nx, by + 26, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
 		} else {
 			String nick = mc.getSession().getUsername();
-			Ui.textBig(ctx, textRenderer, nick, nx, by + 11, Ui.WHITE);
-			Ui.text(ctx, textRenderer, "в сети", nx + 12, by + 30, Ui.GRAY, false);
-			Ui.circle(ctx, nx, by + 31, 7, Ui.argb(255, 70, 220, 110));
-			String edit = "изменить ник";
+			Ui.textBig(ctx, textRenderer, nick, nx, by + 6, Ui.WHITE);
+			Ui.text(ctx, textRenderer, "в сети", nx + 11, by + 24, Ui.GRAY, false);
+			Ui.circle(ctx, nx, by + 25, 7, Ui.argb(255, 70, 220, 110));
+			String edit = "изменить";
 			int ew = Ui.width(textRenderer, edit, false);
-			Ui.text(ctx, textRenderer, edit, bx + bw - ew - 18, by + bh / 2 - 4, barHover ? Ui.WHITE : Ui.GRAY, false);
+			Ui.text(ctx, textRenderer, edit, bx + bw - ew - 14, by + bh / 2 - 4, barHover ? Ui.WHITE : Ui.GRAY, false);
 		}
 
 		// small quit link
