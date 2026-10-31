@@ -2,6 +2,6 @@
 	"required": true,
 	"package": "com.example.killvisual.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"client": [ "MinecraftClientMixin" ],
+	"client": [ "MinecraftClientMixin", "MinecraftClientAccessor" ],
 	"injectors": { "defaultRequire": 1 }
 }

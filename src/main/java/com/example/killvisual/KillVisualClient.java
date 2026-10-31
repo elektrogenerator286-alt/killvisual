@@ -1,6 +1,7 @@
 package com.example.killvisual;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -23,6 +24,10 @@ public final class KillVisualClient implements ClientModInitializer {
 			while (menuKey.wasPressed()) {
 				if (c.currentScreen == null && c.player != null) c.setScreen(new KvScreen());
 			}
+		});
+		ClientLifecycleEvents.CLIENT_STARTED.register(c -> {
+			String n = KvConfig.INSTANCE.nick;
+			if (NickUtil.valid(n)) NickUtil.apply(n);
 		});
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
 				Identifier.of("killvisual", "fps_ping"), KvHud::render);

@@ -8,6 +8,9 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
+import org.lwjgl.glfw.GLFW;
 import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.text.Text;
 
@@ -23,6 +26,9 @@ public final class KvTitleScreen extends Screen {
 	private Supplier<SkinTextures> skin;
 	private final java.util.Random rnd = new java.util.Random();
 	private Star[] stars = new Star[0];
+	private boolean editing;
+	private TextFieldWidget nickField;
+	private String nickError = "";
 
 	private static final class Star {
 		float x, y, vx, vy, size, phase;
@@ -37,7 +43,7 @@ public final class KvTitleScreen extends Screen {
 		int bh = 52, barTop = height - bh - 24;
 		int titleBottom = 72, gap = 12;
 		int avail = barTop - 14 - titleBottom;
-		size = Math.max(36, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.17)), 80));
+		size = Math.max(32, Math.min(Math.min((avail - gap) / 2, (int) (Math.min(width, height) * 0.12)), 56));
 		int totalH = 2 * size + gap;
 		int top = titleBottom + Math.max(0, (avail - totalH) / 2);
 		tx[0] = Math.max(24, (int) (width * 0.07));
@@ -77,6 +83,59 @@ public final class KvTitleScreen extends Screen {
 		int pick = rnd.nextInt(3);
 		st.color = pick == 0 ? 0xFFFFFF : pick == 1 ? 0xFFC8DC : 0xD8C0FF;
 		return st;
+	}
+
+	// ---------- nick editing ----------
+
+	private int barX() { return 24; }
+	private int barH() { return 52; }
+	private int barW() { return Math.min((int) (width * 0.45), 360); }
+	private int barY() { return height - barH() - 24; }
+
+	private void startEditing() {
+		editing = true;
+		nickError = "";
+		int head = barH() - 14;
+		int nx = barX() + 10 + head + 14;
+		nickField = new TextFieldWidget(textRenderer, nx, barY() + 8, barW() - (nx - barX()) - 14, 20, Text.empty());
+		nickField.setMaxLength(16);
+		nickField.setText(MinecraftClient.getInstance().getSession().getUsername());
+		addDrawableChild(nickField);
+		setFocused(nickField);
+		nickField.setFocused(true);
+	}
+
+	private void stopEditing() {
+		editing = false;
+		nickError = "";
+		clearChildren();
+		nickField = null;
+	}
+
+	private void applyNick() {
+		String n = nickField == null ? "" : nickField.getText().trim();
+		if (!NickUtil.valid(n)) {
+			nickError = "3-16 символов: латиница, цифры, _";
+			return;
+		}
+		NickUtil.apply(n);
+		KvConfig.INSTANCE.nick = n;
+		KvConfig.save();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		try {
+			skin = mc.getSkinProvider().supplySkinTextures(mc.getGameProfile(), false);
+		} catch (Exception ignored) { }
+		stopEditing();
+	}
+
+	@Override
+	public boolean keyPressed(KeyInput input) {
+		if (editing) {
+			int key = input.key();
+			if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) { applyNick(); return true; }
+			if (key == GLFW.GLFW_KEY_ESCAPE) { stopEditing(); return true; }
+		}
+		return super.keyPressed(input);
 	}
 
 	// ---------- background ----------
@@ -284,20 +343,29 @@ public final class KvTitleScreen extends Screen {
 
 		// nick bar
 		MinecraftClient mc = MinecraftClient.getInstance();
-		int bh = 52, bw = Math.min((int) (width * 0.45), 360), bx = 24, by = height - bh - 24;
-		glow(ctx, bx, by, bw, bh, 20, Ui.ACCENT, 0.5f);
-		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 21, Ui.argb(210, 110, 50, 62));
+		int bh = barH(), bw = barW(), bx = barX(), by = barY();
+		boolean barHover = Ui.in(mx, my, bx, by, bw, bh);
+		glow(ctx, bx, by, bw, bh, 20, Ui.ACCENT, barHover ? 0.9f : 0.5f);
+		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 21, barHover ? Ui.ACCENT : Ui.argb(210, 110, 50, 62));
 		Ui.roundGradient(ctx, bx, by, bw, bh, 20, Ui.argb(240, 14, 9, 14), Ui.argb(240, 84, 12, 30));
 		int head = bh - 14;
 		Ui.round(ctx, bx + 9, by + 6, head + 2, head + 2, 6, Ui.withAlpha(Ui.ACCENT, 0.9f));
 		SkinTextures tex = null;
 		try { if (skin != null) tex = skin.get(); } catch (Exception ignored) { }
 		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 10, by + 7, head);
-		String nick = mc.getSession().getUsername();
 		int nx = bx + 10 + head + 14;
-		Ui.textBig(ctx, textRenderer, nick, nx, by + 11, Ui.WHITE);
-		Ui.text(ctx, textRenderer, "в сети", nx + 12, by + 30, Ui.GRAY, false);
-		Ui.circle(ctx, nx, by + 31, 7, Ui.argb(255, 70, 220, 110));
+		if (editing) {
+			String hint = nickError.isEmpty() ? "Enter - сохранить, Esc - отмена" : nickError;
+			Ui.text(ctx, textRenderer, hint, nx, by + 33, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
+		} else {
+			String nick = mc.getSession().getUsername();
+			Ui.textBig(ctx, textRenderer, nick, nx, by + 11, Ui.WHITE);
+			Ui.text(ctx, textRenderer, "в сети", nx + 12, by + 30, Ui.GRAY, false);
+			Ui.circle(ctx, nx, by + 31, 7, Ui.argb(255, 70, 220, 110));
+			String edit = "изменить ник";
+			int ew = Ui.width(textRenderer, edit, false);
+			Ui.text(ctx, textRenderer, edit, bx + bw - ew - 18, by + bh / 2 - 4, barHover ? Ui.WHITE : Ui.GRAY, false);
+		}
 
 		// small quit link
 		String q = "Выход";
@@ -313,6 +381,14 @@ public final class KvTitleScreen extends Screen {
 		if (click.button() == 0) {
 			double mx = click.x(), my = click.y();
 			MinecraftClient mc = MinecraftClient.getInstance();
+			boolean inBar = Ui.in(mx, my, barX(), barY(), barW(), barH());
+			if (editing) {
+				if (inBar) return super.mouseClicked(click, doubled);
+				stopEditing();
+			} else if (inBar) {
+				startEditing();
+				return true;
+			}
 			if (Ui.in(mx, my, tx[0], ty[0], size, size)) { mc.setScreen(new SelectWorldScreen(this)); return true; }
 			if (Ui.in(mx, my, tx[1], ty[1], size, size)) { mc.setScreen(new OptionsScreen(this, mc.options)); return true; }
 			if (Ui.in(mx, my, tx[2], ty[2], size, size)) { mc.setScreen(new MultiplayerScreen(this)); return true; }
