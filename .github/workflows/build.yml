@@ -23,6 +23,21 @@ jobs:
       - name: Build
         shell: bash
         run: gradle build --no-daemon 2>&1 | tee build.log
+      - name: Dump API info
+        if: always()
+        shell: bash
+        run: |
+          set +e +o pipefail
+          : > /tmp/info.txt
+          M=$(find ~/.gradle -name "minecraft-merged-*yarn*.jar" | head -1)
+          unzip -l "$M" | awk '{print $4}' | grep -i "font" | grep -i "net/minecraft/text\|net/minecraft/client/font" | head -40 >> /tmp/info.txt
+          for C in net.minecraft.text.Style net.minecraft.text.StyleSpriteSource net.minecraft.client.font.FontDescription net.minecraft.client.font.TextRenderer; do
+            echo "=== $C" >> /tmp/info.txt
+            javap -p -cp "$M" "$C" 2>&1 | grep -i "font\|getWidth\|class \|interface \|record" | cut -c1-240 >> /tmp/info.txt
+          done
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout --orphan info-log; git rm -rf --quiet . || true
+          cp /tmp/info.txt info.txt; git add info.txt; git commit -q -m info; git push -f origin info-log
       - name: Save build log on failure
         if: failure()
         shell: bash
