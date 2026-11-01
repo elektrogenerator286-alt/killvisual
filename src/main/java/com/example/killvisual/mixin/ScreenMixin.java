@@ -23,10 +23,6 @@ public abstract class ScreenMixin {
 		if (self instanceof SelectWorldScreen || self instanceof MultiplayerScreen) {
 			KvBg.paint(context, width, height);
 			ci.cancel();
-		} else if (self instanceof net.minecraft.client.gui.screen.ingame.HandledScreen
-				&& com.example.killvisual.KvConfig.INSTANCE.invFx) {
-			KvBg.paintSoft(context, width, height);
-			ci.cancel();
 		}
 	}
 }

@@ -28,7 +28,7 @@ final class KvGear {
 	private static void armorHud(DrawContext ctx, MinecraftClient mc) {
 		int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();
 		int x = sw / 2 + 96, y = sh - 22;
-		Ui.round(ctx, x - 3, y - 3, 4 * 18 + 4, 22, 6, Ui.withAlpha(Ui.argb(255, 12, 6, 8), KvConfig.INSTANCE.opacity));
+		KvBg.shimmerRound(ctx, x - 3, y - 3, 4 * 18 + 4, 22, 6, (int) (255 * KvConfig.INSTANCE.opacity));
 		for (int i = 0; i < 4; i++) {
 			ItemStack st = mc.player.getEquippedStack(ARMOR[i]);
 			if (st.isEmpty()) continue;
@@ -63,8 +63,7 @@ final class KvGear {
 			ctx.getMatrices().scale(s, s);
 			// 4 armor + 2 hands = 6 slots
 			int w = 6 * 18 + 10, h = 36;
-			Ui.round(ctx, -w / 2, -h, w, h, 6, Ui.withAlpha(Ui.argb(255, 12, 6, 8), 0.8f));
-			Ui.ring(ctx, -w / 2, -h, w, h, 6, 1, Ui.ACCENT);
+			KvBg.shimmerRound(ctx, -w / 2, -h, w, h, 6, 215);
 			String name = p.getName().getString();
 			Ui.text(ctx, tr, name, -Ui.width(tr, name, false) / 2, -h + 3, Ui.WHITE, false);
 			ItemStack[] all = { p.getEquippedStack(EquipmentSlot.HEAD), p.getEquippedStack(EquipmentSlot.CHEST),

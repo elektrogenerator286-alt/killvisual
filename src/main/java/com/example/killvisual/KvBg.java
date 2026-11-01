@@ -119,4 +119,27 @@ public final class KvBg {
 			ctx.fillGradient(x, 0, x + 3, height, c1, c2);
 		}
 	}
+
+	/** Rounded panel with the same flowing red shimmer as the menu. */
+	public static void shimmerRound(DrawContext ctx, int x, int y, int w, int h, int r, int alpha) {
+		double tm = (System.currentTimeMillis() % 6000000L) / 1000.0;
+		float w1 = (float) (Math.sin(tm * 0.9) * 0.5 + 0.5), w2 = (float) (Math.sin(tm * 0.9 + 2.1) * 0.5 + 0.5);
+		Ui.roundGradient(ctx, x, y, w, h, r,
+				Ui.argb(alpha, 10 + (int) (60 * w2), 8 + (int) (6 * w1), 12 + (int) (28 * w1)),
+				Ui.argb(alpha, 60 + (int) (80 * w1), 8 + (int) (12 * w2), 20 + (int) (50 * w2)));
+		Ui.ring(ctx, x, y, w, h, r, 1, Ui.argb(Math.min(255, alpha + 40), 40 + (int) (80 * w1), 8 + (int) (20 * w2), 14 + (int) (40 * w2)));
+	}
+
+	/** Translucent flowing tint laid over an existing panel texture. */
+	public static void paintPanel(DrawContext ctx, int x, int y, int w, int h) {
+		double t = System.nanoTime() / 1e9;
+		for (int c = 0; c < w; c += 2) {
+			double px = c * 0.012;
+			float h1 = (float) (0.5 + 0.5 * Math.sin(px * 1.3 + t * 0.7));
+			float h2 = (float) (0.5 + 0.5 * Math.sin(px * 0.9 - t * 0.55 + 2.0));
+			int c1 = Ui.argb(125, 30 + (int) (110 * h1), 4 + (int) (14 * h2), 20 + (int) (60 * h2));
+			int c2 = Ui.argb(125, 10 + (int) (70 * h2), 4 + (int) (10 * h1), 14 + (int) (40 * h1));
+			ctx.fillGradient(x + c, y, x + Math.min(w, c + 2), y + h, c1, c2);
+		}
+	}
 }

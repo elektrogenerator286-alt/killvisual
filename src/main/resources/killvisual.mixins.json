@@ -2,6 +2,6 @@
 	"required": true,
 	"package": "com.example.killvisual.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"client": [ "MinecraftClientMixin", "MinecraftClientAccessor", "ScreenMixin", "PressableWidgetMixin" ],
+	"client": [ "MinecraftClientMixin", "MinecraftClientAccessor", "ScreenMixin", "PressableWidgetMixin", "HandledScreenMixin" ],
 	"injectors": { "defaultRequire": 1 }
 }
