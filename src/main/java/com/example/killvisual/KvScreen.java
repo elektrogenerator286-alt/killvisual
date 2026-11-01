@@ -15,9 +15,11 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int scroll = 0;
 	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size, 4 blur, 5 Dragonfly speed
 	private TextFieldWidget nameField, noteField;
+	private TextFieldWidget mName, mX, mY, mZ;
+	private String markErr = "";
 
 	private static final int ROW = 22;
-	private static final int BASE = 3;       // 0 = Оформление, 1 = Dragonfly, 2 = Motion Blur, BASE.. = custom items
+	private static final int BASE = 4;       // 0 = Оформление, 1 = Dragonfly, 2 = Motion Blur, 3 = Метки, BASE.. = custom items
 	private boolean placed, moving;
 	private int offX, offY;
 
@@ -45,12 +47,15 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private void moveFields() {
 		if (nameField != null) { nameField.setX(cx + 16); nameField.setY(cy + 62); nameField.setWidth(cw - 32); }
 		if (noteField != null) { noteField.setX(cx + 16); noteField.setY(cy + 106); noteField.setWidth(cw - 32); }
+		placeMarkFields();
 	}
 
 	private void rebuild() {
 		clearChildren();
 		nameField = null;
 		noteField = null;
+		mName = mX = mY = mZ = null;
+		if (sel == 3) buildMarkFields();
 		if (sel >= BASE && sel - BASE < items().size()) {
 			KvConfig.Item it = items().get(sel - BASE);
 			nameField = new TextFieldWidget(textRenderer, cx + 16, cy + 62, cw - 32, 20, Text.empty());
@@ -63,7 +68,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			noteField.setText(it.note);
 			noteField.setChangedListener(s -> it.note = s);
 			addDrawableChild(noteField);
-		} else if (sel != 1 && sel != 2) {
+		} else if (sel > 3) {
 			sel = 0;
 		}
 	}
@@ -107,10 +112,10 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			} else if (hover) {
 				Ui.round(ctx, sx + 6, ry, sw - 12, ROW - 2, 10, Ui.argb(255, 24, 10, 12));
 			}
-			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : i == 2 ? "Motion Blur" : items().get(i - BASE).name;
+			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : i == 2 ? "Motion Blur" : i == 3 ? "Метки" : items().get(i - BASE).name;
 			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
 			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
-			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : i == 2 ? cfg().motionBlur : items().get(i - BASE).done);
+			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : i == 2 ? cfg().motionBlur : i == 3 ? !cfg().marks.isEmpty() : items().get(i - BASE).done);
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
 		ctx.disableScissor();
@@ -119,6 +124,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		if (sel == 0) paintAppearance(ctx, mx, my);
 		else if (sel == 1) paintDragonfly(ctx);
 		else if (sel == 2) paintMotionBlur(ctx);
+		else if (sel == 3) paintMarks(ctx, mx, my);
 		else paintItem(ctx, mx, my);
 	}
 
@@ -159,6 +165,99 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.text(ctx, textRenderer, "Полёт включён", cx + 40, ry(0) + 2, Ui.WHITE, false);
 		slider(ctx, ry(1), "Скорость полёта", (cfg().dragonSpeed - 0.2f) / 4.8f, String.format("x%.1f", cfg().dragonSpeed));
 		Ui.text(ctx, textRenderer, "Вверх: пробел, вниз: Shift", cx + 20, ry(2) + 2, Ui.GRAY, false);
+	}
+
+	private void buildMarkFields() {
+		mName = new TextFieldWidget(textRenderer, 0, 0, 10, 18, Text.empty());
+		mName.setMaxLength(16);
+		mName.setPlaceholder(Text.literal("Название метки"));
+		mX = coordField("X");
+		mY = coordField("Y (можно пусто)");
+		mZ = coordField("Z");
+		addDrawableChild(mName);
+		addDrawableChild(mX);
+		addDrawableChild(mY);
+		addDrawableChild(mZ);
+		placeMarkFields();
+	}
+
+	private TextFieldWidget coordField(String hint) {
+		TextFieldWidget f = new TextFieldWidget(textRenderer, 0, 0, 10, 18, Text.empty());
+		f.setMaxLength(12);
+		f.setPlaceholder(Text.literal(hint));
+		return f;
+	}
+
+	private void placeMarkFields() {
+		if (mName == null) return;
+		mName.setX(cx + 16); mName.setY(cy + 50); mName.setWidth(cw - 32);
+		int fw = (cw - 32 - 12) / 3;
+		mX.setX(cx + 16); mX.setY(cy + 74); mX.setWidth(fw);
+		mY.setX(cx + 16 + fw + 6); mY.setY(cy + 74); mY.setWidth(fw);
+		mZ.setX(cx + 16 + 2 * (fw + 6)); mZ.setY(cy + 74); mZ.setWidth(fw);
+	}
+
+	private int markRowY(int i) { return cy + 130 + i * 18; }
+
+	private void paintMarks(DrawContext ctx, int mx, int my) {
+		Ui.circle(ctx, cx + 16, cy + 14, 14, cfg().marks.isEmpty() ? Ui.DIM : Ui.ACCENT);
+		Ui.text(ctx, textRenderer, "Метки", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "координаты и расстояние до метки", cx + 16, cy + 36, Ui.GRAY, false);
+		boolean hAdd = Ui.in(mx, my, cx + 16, cy + 98, 108, 16);
+		Ui.round(ctx, cx + 16, cy + 98, 108, 16, 8, hAdd ? Ui.argb(255, 120, 24, 34) : Ui.argb(255, 86, 20, 28));
+		Ui.text(ctx, textRenderer, "Добавить метку", cx + 26, cy + 102, Ui.WHITE, false);
+		boolean hPos = Ui.in(mx, my, cx + 130, cy + 98, 100, 16);
+		Ui.round(ctx, cx + 130, cy + 98, 100, 16, 8, hPos ? Ui.argb(255, 60, 20, 26) : Ui.argb(255, 40, 12, 16));
+		Ui.text(ctx, textRenderer, "Моя позиция", cx + 142, cy + 102, Ui.WHITE, false);
+		if (!markErr.isEmpty()) Ui.text(ctx, textRenderer, markErr, cx + 16, cy + 118, Ui.ACCENT, false);
+		ctx.enableScissor(cx, cy, cx + cw, cy + ch);
+		var player = client == null ? null : client.player;
+		for (int i = 0; i < cfg().marks.size(); i++) {
+			KvConfig.Mark m = cfg().marks.get(i);
+			int y = markRowY(i);
+			Ui.circle(ctx, cx + 18, y + 2, 10, m.on ? Ui.ACCENT : Ui.DIM);
+			String dist = player == null ? "" : Math.round(KvMarks.distance(player, m)) + " бл.";
+			String line = m.name + "  " + Math.round(m.x) + " " + Math.round(m.y) + " " + Math.round(m.z);
+			int maxW = cw - 80 - Ui.width(textRenderer, dist, false);
+			while (Ui.width(textRenderer, line, false) > maxW && line.length() > 1) line = line.substring(0, line.length() - 1);
+			Ui.text(ctx, textRenderer, line, cx + 34, y + 3, Ui.WHITE, false);
+			Ui.text(ctx, textRenderer, dist, cx + cw - 30 - Ui.width(textRenderer, dist, false), y + 3, Ui.GRAY, false);
+			boolean hx = Ui.in(mx, my, cx + cw - 24, y, 16, 16);
+			Ui.text(ctx, textRenderer, "x", cx + cw - 20, y + 3, hx ? Ui.WHITE : Ui.ACCENT, true);
+		}
+		ctx.disableScissor();
+	}
+
+	private static double num(String t) {
+		return Double.parseDouble(t.trim().replace(',', '.'));
+	}
+
+	private void addMark() {
+		if (cfg().marks.size() >= KvConfig.MAX_MARKS) { markErr = "Максимум меток: " + KvConfig.MAX_MARKS; return; }
+		try {
+			KvConfig.Mark m = new KvConfig.Mark();
+			m.x = num(mX.getText());
+			m.z = num(mZ.getText());
+			if (mY.getText().isBlank()) m.y = client != null && client.player != null ? client.player.getY() : 64;
+			else m.y = num(mY.getText());
+			String n = mName.getText().trim();
+			m.name = n.isEmpty() ? "Метка " + (cfg().marks.size() + 1) : n;
+			cfg().marks.add(m);
+			mName.setText("");
+			mX.setText("");
+			mY.setText("");
+			mZ.setText("");
+			markErr = "";
+		} catch (NumberFormatException e) {
+			markErr = "Впишите числа в X и Z";
+		}
+	}
+
+	private void fillMyPosition() {
+		if (client == null || client.player == null) return;
+		mX.setText(String.valueOf(client.player.getBlockX()));
+		mY.setText(String.valueOf(client.player.getBlockY()));
+		mZ.setText(String.valueOf(client.player.getBlockZ()));
 	}
 
 	private int ry(int i) { return cardY() + 8 + 21 * i; }
@@ -232,6 +331,14 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				return true;
 			}
 			if (Ui.in(mx, my, cx + 14, ry(5) - 2, cw - 28, 18)) { cfg().customTitle = !cfg().customTitle; return true; }
+		} else if (sel == 3) {
+			if (Ui.in(mx, my, cx + 16, cy + 98, 108, 16)) { addMark(); return true; }
+			if (Ui.in(mx, my, cx + 130, cy + 98, 100, 16)) { fillMyPosition(); return true; }
+			for (int i = 0; i < cfg().marks.size(); i++) {
+				int y = markRowY(i);
+				if (Ui.in(mx, my, cx + cw - 24, y, 16, 16)) { cfg().marks.remove(i); return true; }
+				if (Ui.in(mx, my, cx + 14, y - 2, cw - 44, 18)) { cfg().marks.get(i).on = !cfg().marks.get(i).on; return true; }
+			}
 		} else if (sel == 2) {
 			if (Ui.in(mx, my, cx + 14, ry(0) - 2, cw - 28, 18)) {
 				cfg().motionBlur = !cfg().motionBlur;

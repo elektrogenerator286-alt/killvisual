@@ -43,5 +43,7 @@ public final class KillVisualClient implements ClientModInitializer {
 				Identifier.of("killvisual", "motion_blur"), KvMotionBlur::render);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
 				Identifier.of("killvisual", "fps_ping"), KvHud::render);
+		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
+				Identifier.of("killvisual", "marks"), KvMarks::render);
 	}
 }

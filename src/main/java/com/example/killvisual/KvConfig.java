@@ -16,6 +16,14 @@ public final class KvConfig {
 		public boolean done = false;
 	}
 
+	public static final class Mark {
+		public String name = "Метка";
+		public double x, y, z;
+		public boolean on = true;
+	}
+
+	public static final int MAX_MARKS = 5;
+
 	public static final String[] POSITIONS = {
 			"По центру сверху", "Слева сверху", "Справа сверху",
 			"Слева снизу", "Справа снизу", "По центру снизу"
@@ -33,6 +41,7 @@ public final class KvConfig {
 	public boolean dragonfly = false;
 	public float dragonSpeed = 1.0f;
 	public List<Item> items = new ArrayList<>();
+	public List<Mark> marks = new ArrayList<>();
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("killvisual.json");
@@ -44,6 +53,7 @@ public final class KvConfig {
 				KvConfig c = GSON.fromJson(Files.readString(FILE), KvConfig.class);
 				if (c != null) {
 					if (c.items == null) c.items = new ArrayList<>();
+					if (c.marks == null) c.marks = new ArrayList<>();
 					return c;
 				}
 			}
