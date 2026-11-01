@@ -40,8 +40,8 @@ public final class KvTitleScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int bh = 40, barTop = height - bh - 24;
-		int titleBottom = 94, gap = 12;
+		int bh = 30, barTop = height - bh - 24;
+		int titleBottom = 112, gap = 12;
 		int avail = barTop - 14 - titleBottom;
 		size = Math.max(32, Math.min(Math.min((avail - 2 * gap) / 3, (int) (Math.min(width, height) * 0.16)), 70));
 		int totalH = 3 * size + 2 * gap;
@@ -88,16 +88,16 @@ public final class KvTitleScreen extends Screen {
 	// ---------- nick editing ----------
 
 	private int barX() { return 24; }
-	private int barH() { return 40; }
-	private int barW() { return Math.min((int) (width * 0.30), 280); }
+	private int barH() { return 30; }
+	private int barW() { return Math.min((int) (width * 0.22), 200); }
 	private int barY() { return height - barH() - 24; }
 
 	private void startEditing() {
 		editing = true;
 		nickError = "";
-		int head = barH() - 12;
-		int nx = barX() + 10 + head + 14;
-		nickField = new TextFieldWidget(textRenderer, nx, barY() + 4, barW() - (nx - barX()) - 12, 20, Text.empty());
+		int head = barH() - 8;
+		int nx = barX() + 8 + head + 10;
+		nickField = new TextFieldWidget(textRenderer, nx, barY() + 5, barW() - (nx - barX()) - 10, 20, Text.empty());
 		nickField.setMaxLength(16);
 		nickField.setText(MinecraftClient.getInstance().getSession().getUsername());
 		addDrawableChild(nickField);
@@ -264,7 +264,7 @@ public final class KvTitleScreen extends Screen {
 			cw[i] = Ui.widthTitle(textRenderer, String.valueOf(title.charAt(i)));
 			total += cw[i] + (i < n - 1 ? spacing : 0);
 		}
-		int x0 = width - total - 30, y0 = 42;
+		int x0 = width - total - 30, y0 = 56;
 		// glow behind
 		int x = x0;
 		for (int i = 0; i < n; i++) {
@@ -353,23 +353,21 @@ public final class KvTitleScreen extends Screen {
 		glow(ctx, bx, by, bw, bh, 16, Ui.ACCENT, barHover ? 0.9f : 0.5f);
 		Ui.round(ctx, bx - 1, by - 1, bw + 2, bh + 2, 17, barHover ? Ui.ACCENT : Ui.argb(210, 110, 50, 62));
 		Ui.roundGradient(ctx, bx, by, bw, bh, 16, Ui.argb(240, 14, 9, 14), Ui.argb(240, 84, 12, 30));
-		int head = bh - 12;
-		Ui.round(ctx, bx + 7, by + 5, head + 2, head + 2, 5, Ui.withAlpha(Ui.ACCENT, 0.9f));
+		int head = bh - 8;
+		Ui.round(ctx, bx + 7, by + 3, head + 2, head + 2, 4, Ui.withAlpha(Ui.ACCENT, 0.9f));
 		SkinTextures tex = null;
 		try { if (skin != null) tex = skin.get(); } catch (Exception ignored) { }
-		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 8, by + 6, head);
-		int nx = bx + 8 + head + 12;
+		if (tex != null) PlayerSkinDrawer.draw(ctx, tex, bx + 8, by + 4, head);
+		int nx = bx + 8 + head + 10;
 		if (editing) {
 			String hint = nickError.isEmpty() ? "Enter - сохранить, Esc - отмена" : nickError;
-			Ui.text(ctx, textRenderer, hint, nx, by + 26, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
+			Ui.text(ctx, textRenderer, hint, bx + 8, by - 13, nickError.isEmpty() ? Ui.GRAY : Ui.ACCENT, false);
 		} else {
 			String nick = mc.getSession().getUsername();
-			Ui.text(ctx, textRenderer, nick, nx, by + 9, Ui.WHITE, true);
-			Ui.text(ctx, textRenderer, "в сети", nx + 11, by + 24, Ui.GRAY, false);
-			Ui.circle(ctx, nx, by + 25, 7, Ui.argb(255, 70, 220, 110));
+			Ui.text(ctx, textRenderer, nick, nx, by + 10, Ui.WHITE, true);
 			String edit = "изменить";
 			int ew = Ui.width(textRenderer, edit, false);
-			Ui.text(ctx, textRenderer, edit, bx + bw - ew - 14, by + bh / 2 - 4, barHover ? Ui.WHITE : Ui.GRAY, false);
+			Ui.text(ctx, textRenderer, edit, bx + bw - ew - 12, by + bh / 2 - 4, barHover ? Ui.WHITE : Ui.GRAY, false);
 		}
 
 		// small quit link
