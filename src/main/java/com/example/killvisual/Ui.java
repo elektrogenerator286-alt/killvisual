@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 /** Small drawing helpers: pixel-rounded rectangles and colours. */
-final class Ui {
+public final class Ui {
 	private Ui() { }
 
 	private static final Style REG = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui")));
@@ -17,31 +17,31 @@ final class Ui {
 	private static final Style BIG = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_big")));
 	private static final Style TITLE = Style.EMPTY.withFont(new StyleSpriteSource.Font(Identifier.of("killvisual", "ui_title")));
 
-	static int widthBig(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(BIG)); }
-	static void textBig(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
+	public static int widthBig(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(BIG)); }
+	public static void textBig(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
 		c.drawText(tr, Text.literal(s).setStyle(BIG), x, y, color, true);
 	}
-	static int widthTitle(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(TITLE)); }
-	static void textTitle(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
+	public static int widthTitle(TextRenderer tr, String s) { return tr.getWidth(Text.literal(s).setStyle(TITLE)); }
+	public static void textTitle(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
 		c.drawText(tr, Text.literal(s).setStyle(TITLE), x, y, color, true);
 	}
 
-	static Text t(String s, boolean bold) { return Text.literal(s).setStyle(bold ? BOLD : REG); }
-	static int width(TextRenderer tr, String s, boolean bold) { return tr.getWidth(t(s, bold)); }
-	static void text(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean bold) {
+	public static Text t(String s, boolean bold) { return Text.literal(s).setStyle(bold ? BOLD : REG); }
+	public static int width(TextRenderer tr, String s, boolean bold) { return tr.getWidth(t(s, bold)); }
+	public static void text(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean bold) {
 		c.drawText(tr, t(s, bold), x, y, color, true);
 	}
 
-	static final int ACCENT = 0xFFE42838;
-	static final int WHITE = 0xFFFFFFFF;
-	static final int GRAY = 0xFFBFAAAF;
-	static final int DIM = 0xFF4A2A30;
+	public static final int ACCENT = 0xFFE42838;
+	public static final int WHITE = 0xFFFFFFFF;
+	public static final int GRAY = 0xFFBFAAAF;
+	public static final int DIM = 0xFF4A2A30;
 
-	static int argb(int a, int r, int g, int b) {
+	public static int argb(int a, int r, int g, int b) {
 		return (a & 255) << 24 | (r & 255) << 16 | (g & 255) << 8 | (b & 255);
 	}
 
-	static int withAlpha(int color, float alpha) {
+	public static int withAlpha(int color, float alpha) {
 		int a = (int) (((color >>> 24) & 255) * Math.max(0f, Math.min(1f, alpha)));
 		return (a << 24) | (color & 0xFFFFFF);
 	}
@@ -53,17 +53,17 @@ final class Ui {
 		return (float) (r - Math.sqrt(Math.max(0, r * r - dx * dx)));
 	}
 
-	static void round(DrawContext c, int x, int y, int w, int h, int r, int color) {
+	public static void round(DrawContext c, int x, int y, int w, int h, int r, int color) {
 		roundGradient(c, x, y, w, h, r, color, color);
 	}
 
-	static void outline(DrawContext c, int x, int y, int w, int h, int r, int border, int fill) {
+	public static void outline(DrawContext c, int x, int y, int w, int h, int r, int border, int fill) {
 		round(c, x, y, w, h, r, border);
 		round(c, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
 	}
 
 	/** Horizontal gradient inside a rounded rectangle, with anti-aliased (smooth) corners. */
-	static void roundGradient(DrawContext c, int x, int y, int w, int h, int r, int left, int right) {
+	public static void roundGradient(DrawContext c, int x, int y, int w, int h, int r, int left, int right) {
 		r = Math.min(r, Math.min(w, h) / 2);
 		for (int col = 0; col < w; col++) {
 			float e = edge(Math.min(col, w - 1 - col), r);
@@ -89,11 +89,11 @@ final class Ui {
 
 	private static int lerp(int a, int b, float t) { return Math.round(a + (b - a) * t); }
 
-	static void circle(DrawContext c, int x, int y, int size, int color) {
+	public static void circle(DrawContext c, int x, int y, int size, int color) {
 		round(c, x, y, size, size, size / 2, color);
 	}
 
-	static boolean in(double mx, double my, int x, int y, int w, int h) {
+	public static boolean in(double mx, double my, int x, int y, int w, int h) {
 		return mx >= x && mx < x + w && my >= y && my < y + h;
 	}
 }
