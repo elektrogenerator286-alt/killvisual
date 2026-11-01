@@ -122,7 +122,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cardY(), cardH = Math.min(ch - 52, 9 * 21 + 14);
+		int cardY = cardY(), cardH = Math.min(ch - 52, 11 * 19 + 14);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
 		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, ry(0) + 2, Ui.WHITE, false);
@@ -142,9 +142,15 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.text(ctx, textRenderer, "ArmorHud", cx + 40, ry(8) + 2, Ui.WHITE, false);
 		Ui.circle(ctx, cx + 20 + half, ry(8), 12, cfg().enemyTags ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Таблички", cx + 40 + half, ry(8) + 2, Ui.WHITE, false);
+		Ui.text(ctx, textRenderer, "Atmosphere", cx + 20, ry(9) + 2, Ui.WHITE, false);
+		String at = KvConfig.ATMOS[cfg().atmo];
+		Ui.text(ctx, textRenderer, at, cx + 20 + half - 12 - Ui.width(textRenderer, at, false), ry(9) + 2, Ui.ACCENT, false);
+		Ui.circle(ctx, cx + 20 + half, ry(9), 12, cfg().invFx ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Фон инвентаря", cx + 40 + half, ry(9) + 2, Ui.WHITE, false);
+		slider(ctx, ry(10), "Сила атмосферы", cfg().atmoPower, Math.round(cfg().atmoPower * 100) + "%");
 	}
 
-	private int ry(int i) { return cardY() + 8 + 21 * i; }
+	private int ry(int i) { return cardY() + 6 + 19 * i; }
 
 	private int cardY() { return cy + 46; }
 
@@ -223,6 +229,13 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			int half = (cw - 16) / 2;
 			if (Ui.in(mx, my, cx + 14, ry(8) - 2, half - 4, 18)) { cfg().armorHud = !cfg().armorHud; return true; }
 			if (Ui.in(mx, my, cx + 14 + half, ry(8) - 2, half - 4, 18)) { cfg().enemyTags = !cfg().enemyTags; return true; }
+			if (Ui.in(mx, my, cx + 14, ry(9) - 2, half - 4, 18)) { cfg().atmo = (cfg().atmo + 1) % KvConfig.ATMOS.length; return true; }
+			if (Ui.in(mx, my, cx + 14 + half, ry(9) - 2, half - 4, 18)) { cfg().invFx = !cfg().invFx; return true; }
+			if (Ui.in(mx, my, sliderX() - 6, ry(10) - 2, sliderW() + 12, 18)) {
+				dragId = 5;
+				setSlider(5, mx);
+				return true;
+			}
 			if (Ui.in(mx, my, sliderX() - 6, ry(7) - 2, sliderW() + 12, 18)) {
 				dragId = 4;
 				setSlider(4, mx);
@@ -256,6 +269,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			case 1 -> cfg().opacity = 0.1f + 0.9f * t;
 			case 2 -> cfg().hudScale = 0.6f + 0.9f * t;
 			case 4 -> cfg().blurLevel = Math.round(t * 4);
+			case 5 -> cfg().atmoPower = t;
 			default -> cfg().menuScale = 0.9f + 0.5f * t;
 		}
 	}

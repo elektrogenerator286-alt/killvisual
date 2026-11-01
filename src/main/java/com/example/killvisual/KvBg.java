@@ -106,4 +106,17 @@ public final class KvBg {
 			}
 		}
 	}
+
+	/** Translucent flowing colours for inventory screens. */
+	public static void paintSoft(DrawContext ctx, int width, int height) {
+		double t = System.nanoTime() / 1e9;
+		for (int x = 0; x < width; x += 3) {
+			double px = x * 0.006;
+			float h1 = (float) (0.5 + 0.5 * Math.sin(px * 1.3 + t * 0.4));
+			float h2 = (float) (0.5 + 0.5 * Math.sin(px * 0.9 - t * 0.33 + 2.0));
+			int c1 = (150 << 24) | (hsv(0.80f + 0.2f * h1, 0.85f, 0.45f + 0.2f * h2) & 0xFFFFFF);
+			int c2 = (170 << 24) | (hsv(0.93f + 0.1f * h2, 0.9f, 0.30f + 0.2f * h1) & 0xFFFFFF);
+			ctx.fillGradient(x, 0, x + 3, height, c1, c2);
+		}
+	}
 }

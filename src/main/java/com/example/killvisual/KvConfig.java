@@ -29,9 +29,13 @@ public final class KvConfig {
 	public float menuScale = 1.0f;
 	public boolean motionBlur = false;
 	public int blurLevel = 2;
+	public int atmo = 0;
+	public float atmoPower = 0.5f;
+	public boolean invFx = true;
 	public boolean armorHud = true;
 	public boolean enemyTags = true;
 	public int position = 0;
+	public static final String[] ATMOS = { "Выкл", "Туман", "Закат", "Ночь", "Неон" };
 	public List<Item> items = new ArrayList<>();
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
