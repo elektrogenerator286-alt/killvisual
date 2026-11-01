@@ -2,9 +2,8 @@ package com.example.killvisual;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerAbilities;
 
-/** Dragonfly: creative-style flight with an adjustable speed. */
+/** Dragonfly: changes only the flight speed. It never turns flight on by itself. */
 final class KvDragonfly {
 	private static final float VANILLA_FLY_SPEED = 0.05f;
 	private static boolean active;
@@ -18,18 +17,12 @@ final class KvDragonfly {
 			return;
 		}
 		KvConfig cfg = KvConfig.INSTANCE;
-		PlayerAbilities ab = p.getAbilities();
 		if (cfg.dragonfly) {
 			active = true;
-			ab.allowFlying = true;
-			ab.flying = true;
-			ab.setFlySpeed(VANILLA_FLY_SPEED * cfg.dragonSpeed);
+			p.getAbilities().setFlySpeed(VANILLA_FLY_SPEED * cfg.dragonSpeed);
 		} else if (active) {
 			active = false;
-			boolean keep = p.isCreative() || p.isSpectator();
-			ab.allowFlying = keep;
-			if (!keep) ab.flying = false;
-			ab.setFlySpeed(VANILLA_FLY_SPEED);
+			p.getAbilities().setFlySpeed(VANILLA_FLY_SPEED);
 		}
 	}
 }

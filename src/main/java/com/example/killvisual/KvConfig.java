@@ -42,6 +42,8 @@ public final class KvConfig {
 	public float dragonSpeed = 1.0f;
 	public List<Item> items = new ArrayList<>();
 	public List<Mark> marks = new ArrayList<>();
+	public java.util.Set<String> optOn = new java.util.HashSet<>();
+	public java.util.Map<String, String> optPrev = new java.util.HashMap<>();
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("killvisual.json");
@@ -54,6 +56,8 @@ public final class KvConfig {
 				if (c != null) {
 					if (c.items == null) c.items = new ArrayList<>();
 					if (c.marks == null) c.marks = new ArrayList<>();
+					if (c.optOn == null) c.optOn = new java.util.HashSet<>();
+					if (c.optPrev == null) c.optPrev = new java.util.HashMap<>();
 					return c;
 				}
 			}

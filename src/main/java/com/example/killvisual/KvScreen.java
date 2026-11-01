@@ -13,13 +13,14 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int cx, cy, cw, ch;           // content
 	private int sel = 0;
 	private int scroll = 0;
-	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size, 4 blur, 5 Dragonfly speed
+	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size, 4 blur, 5 Dragonfly speed, 6 view distance, 7 simulation distance
 	private TextFieldWidget nameField, noteField;
 	private TextFieldWidget mName, mX, mY, mZ;
 	private String markErr = "";
+	private Integer viewTmp, simTmp;
 
 	private static final int ROW = 22;
-	private static final int BASE = 4;       // 0 = Оформление, 1 = Dragonfly, 2 = Motion Blur, 3 = Метки, BASE.. = custom items
+	private static final int BASE = 5;       // 0 = Оформление, 1 = Dragonfly, 2 = Motion Blur, 3 = Метки, 4 = Оптимизация, BASE.. = custom items
 	private boolean placed, moving;
 	private int offX, offY;
 
@@ -68,7 +69,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			noteField.setText(it.note);
 			noteField.setChangedListener(s -> it.note = s);
 			addDrawableChild(noteField);
-		} else if (sel > 3) {
+		} else if (sel > 4) {
 			sel = 0;
 		}
 	}
@@ -112,10 +113,10 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			} else if (hover) {
 				Ui.round(ctx, sx + 6, ry, sw - 12, ROW - 2, 10, Ui.argb(255, 24, 10, 12));
 			}
-			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : i == 2 ? "Motion Blur" : i == 3 ? "Метки" : items().get(i - BASE).name;
+			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : i == 2 ? "Motion Blur" : i == 3 ? "Метки" : i == 4 ? "Оптимизация" : items().get(i - BASE).name;
 			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
 			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
-			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : i == 2 ? cfg().motionBlur : i == 3 ? !cfg().marks.isEmpty() : items().get(i - BASE).done);
+			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : i == 2 ? cfg().motionBlur : i == 3 ? !cfg().marks.isEmpty() : i == 4 ? KvOptimize.anyOn() : items().get(i - BASE).done);
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
 		ctx.disableScissor();
@@ -125,6 +126,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		else if (sel == 1) paintDragonfly(ctx);
 		else if (sel == 2) paintMotionBlur(ctx);
 		else if (sel == 3) paintMarks(ctx, mx, my);
+		else if (sel == 4) paintOptimize(ctx);
 		else paintItem(ctx, mx, my);
 	}
 
@@ -159,12 +161,30 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private void paintDragonfly(DrawContext ctx) {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, cfg().dragonfly ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Dragonfly", cx + 38, cy + 17, Ui.WHITE, true);
-		Ui.text(ctx, textRenderer, "полёт: быстрее или медленнее", cx + 16, cy + 36, Ui.GRAY, false);
+		Ui.text(ctx, textRenderer, "скорость полёта, сам полёт не включается", cx + 16, cy + 36, Ui.GRAY, false);
 		Ui.round(ctx, cx + 8, cardY(), cw - 16, 3 * 21 + 14, 10, Ui.argb(255, 26, 2, 6));
 		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().dragonfly ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Полёт включён", cx + 40, ry(0) + 2, Ui.WHITE, false);
+		Ui.text(ctx, textRenderer, "Dragonfly включён", cx + 40, ry(0) + 2, Ui.WHITE, false);
 		slider(ctx, ry(1), "Скорость полёта", (cfg().dragonSpeed - 0.2f) / 4.8f, String.format("x%.1f", cfg().dragonSpeed));
-		Ui.text(ctx, textRenderer, "Вверх: пробел, вниз: Shift", cx + 20, ry(2) + 2, Ui.GRAY, false);
+		Ui.text(ctx, textRenderer, "Работает, когда вы уже летите", cx + 20, ry(2) + 2, Ui.GRAY, false);
+	}
+
+	private void paintOptimize(DrawContext ctx) {
+		Ui.circle(ctx, cx + 16, cy + 14, 14, KvOptimize.anyOn() ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Оптимизация", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "настройки, которые повышают FPS", cx + 16, cy + 36, Ui.GRAY, false);
+		int n = KvOptimize.Opt.values().length;
+		Ui.round(ctx, cx + 8, cardY(), cw - 16, Math.min(ch - 52, (n + 2) * 21 + 14), 10, Ui.argb(255, 26, 2, 6));
+		for (int i = 0; i < n; i++) {
+			KvOptimize.Opt o = KvOptimize.Opt.values()[i];
+			Ui.circle(ctx, cx + 20, ry(i), 12, KvOptimize.isOn(o) ? Ui.ACCENT : Ui.DIM);
+			Ui.text(ctx, textRenderer, o.label, cx + 40, ry(i) + 2, Ui.WHITE, false);
+		}
+		var o = client.options;
+		int view = viewTmp != null ? viewTmp : o.getViewDistance().getValue();
+		int sim = simTmp != null ? simTmp : o.getSimulationDistance().getValue();
+		slider(ctx, ry(n), "Дальность прорисовки", (view - 2) / 30f, String.valueOf(view));
+		slider(ctx, ry(n + 1), "Дальность симуляции", (sim - 5) / 27f, String.valueOf(sim));
 	}
 
 	private void buildMarkFields() {
@@ -331,6 +351,13 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				return true;
 			}
 			if (Ui.in(mx, my, cx + 14, ry(5) - 2, cw - 28, 18)) { cfg().customTitle = !cfg().customTitle; return true; }
+		} else if (sel == 4) {
+			int n = KvOptimize.Opt.values().length;
+			for (int i = 0; i < n; i++) {
+				if (Ui.in(mx, my, cx + 14, ry(i) - 2, cw - 28, 18)) { KvOptimize.toggle(KvOptimize.Opt.values()[i]); return true; }
+			}
+			if (Ui.in(mx, my, sliderX() - 6, ry(n) - 2, sliderW() + 12, 18)) { dragId = 6; setSlider(6, mx); return true; }
+			if (Ui.in(mx, my, sliderX() - 6, ry(n + 1) - 2, sliderW() + 12, 18)) { dragId = 7; setSlider(7, mx); return true; }
 		} else if (sel == 3) {
 			if (Ui.in(mx, my, cx + 16, cy + 98, 108, 16)) { addMark(); return true; }
 			if (Ui.in(mx, my, cx + 130, cy + 98, 100, 16)) { fillMyPosition(); return true; }
@@ -385,6 +412,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			case 1 -> cfg().opacity = 0.1f + 0.9f * t;
 			case 2 -> cfg().hudScale = 0.6f + 0.9f * t;
 			case 4 -> cfg().blurLevel = Math.round(t * 4);
+			case 6 -> viewTmp = 2 + Math.round(t * 30);
+			case 7 -> simTmp = 5 + Math.round(t * 27);
 			case 5 -> cfg().dragonSpeed = Math.round((0.2f + 4.8f * t) * 10f) / 10f;
 			default -> cfg().menuScale = 0.9f + 0.5f * t;
 		}
@@ -405,6 +434,11 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 
 	@Override
 	public boolean mouseReleased(Click click) {
+		if (dragId == 6 || dragId == 7) {
+			KvOptimize.applyDistances(viewTmp, simTmp);
+			viewTmp = null;
+			simTmp = null;
+		}
 		if (dragId == 3) { dragId = 0; init(); } // apply the new menu size
 		dragId = 0;
 		moving = false;
