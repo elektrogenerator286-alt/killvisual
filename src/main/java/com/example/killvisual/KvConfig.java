@@ -25,6 +25,8 @@ public final class KvConfig {
 	public boolean customTitle = true;
 	public String nick = "";
 	public float opacity = 0.85f;
+	public float hudScale = 0.85f;
+	public float menuScale = 1.0f;
 	public int position = 0;
 	public List<Item> items = new ArrayList<>();
 

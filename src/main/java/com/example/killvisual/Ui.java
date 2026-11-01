@@ -57,6 +57,22 @@ public final class Ui {
 		roundGradient(c, x, y, w, h, r, color, color);
 	}
 
+	/** Rounded border only (the inside stays untouched, so it works with transparent colours). */
+	public static void ring(DrawContext c, int x, int y, int w, int h, int r, int t, int color) {
+		r = Math.min(r, Math.min(w, h) / 2);
+		for (int col = 0; col < w; col++) {
+			int d = Math.min(col, w - 1 - col);
+			int top = Math.round(edge(d, r));
+			if (d < t) {
+				c.fill(x + col, y + top, x + col + 1, y + h - top, color);
+			} else {
+				int in = Math.round(t + edge(d - t, Math.max(0, r - t)));
+				c.fill(x + col, y + top, x + col + 1, y + in, color);
+				c.fill(x + col, y + h - in, x + col + 1, y + h - top, color);
+			}
+		}
+	}
+
 	public static void outline(DrawContext c, int x, int y, int w, int h, int r, int border, int fill) {
 		round(c, x, y, w, h, r, border);
 		round(c, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);

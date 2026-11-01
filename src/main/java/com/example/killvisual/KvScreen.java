@@ -13,7 +13,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int cx, cy, cw, ch;           // content
 	private int sel = 0;                  // 0 = Оформление, 1.. = custom items
 	private int scroll = 0;
-	private boolean dragging;
+	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size
 	private TextFieldWidget nameField, noteField;
 
 	private static final int ROW = 22;
@@ -27,8 +27,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 
 	@Override
 	protected void init() {
-		pw = Math.min(width - 20, 380);
-		ph = Math.min(height - 20, 250);
+		pw = Math.min(width - 20, (int) (400 * cfg().menuScale));
+		ph = Math.min(height - 20, (int) (285 * cfg().menuScale));
 		if (!placed) { px = (width - pw) / 2; py = (height - ph) / 2; placed = true; }
 		px = Math.max(0, Math.min(width - pw, px));
 		py = Math.max(0, Math.min(height - ph, py));
@@ -117,34 +117,38 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cy + 52, cardH = Math.min(ch - 62, 134);
+		int cardY = cardY(), cardH = Math.min(ch - 52, 152);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
-		// row 0: title toggle
-		int r0 = cardY + 14;
+		int r0 = cardY + 10;
 		Ui.circle(ctx, cx + 20, r0, 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, r0 + 2, Ui.WHITE, false);
-		// row 1: opacity slider
-		int r1 = cardY + 44;
-		Ui.text(ctx, textRenderer, "Прозрачность", cx + 20, r1 + 2, Ui.WHITE, false);
-		int tx = sliderX(), tw = sliderW();
-		Ui.round(ctx, tx, r1 + 5, tw, 4, 2, Ui.argb(255, 70, 30, 36));
-		float t = (cfg().opacity - 0.1f) / 0.9f;
-		int fillW = (int) (tw * t);
-		Ui.round(ctx, tx, r1 + 5, Math.max(4, fillW), 4, 2, Ui.ACCENT);
-		Ui.circle(ctx, tx + fillW - 5, r1 + 2, 10, Ui.WHITE);
-		// row 2: position
-		int r2 = cardY + 74;
-		Ui.text(ctx, textRenderer, "Положение", cx + 20, r2 + 2, Ui.WHITE, false);
+		slider(ctx, cardY + 34, "Прозрачность", (cfg().opacity - 0.1f) / 0.9f, Math.round(cfg().opacity * 100) + "%");
+		slider(ctx, cardY + 58, "Размер плашки", (cfg().hudScale - 0.6f) / 0.9f, String.format("x%.2f", cfg().hudScale));
+		slider(ctx, cardY + 82, "Размер меню", (cfg().menuScale - 0.9f) / 0.5f, String.format("x%.2f", cfg().menuScale));
+		int r4 = cardY + 106;
+		Ui.text(ctx, textRenderer, "Положение", cx + 20, r4 + 2, Ui.WHITE, false);
 		String pos = KvConfig.POSITIONS[cfg().position];
-		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), r2 + 2, Ui.ACCENT, false);
-		// row 3: custom main menu
-		int r3 = cardY + 104;
-		Ui.circle(ctx, cx + 20, r3, 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, r3 + 2, Ui.WHITE, false);
+		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), r4 + 2, Ui.ACCENT, false);
+		int r5 = cardY + 130;
+		Ui.circle(ctx, cx + 20, r5, 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, r5 + 2, Ui.WHITE, false);
 	}
 
-	private int sliderX() { return cx + cw - 24 - Math.min(120, cw / 3); }
-	private int sliderW() { return Math.min(120, cw / 3); }
+	private int cardY() { return cy + 46; }
+
+	private void slider(DrawContext ctx, int y, String label, float t, String value) {
+		t = Math.max(0f, Math.min(1f, t));
+		Ui.text(ctx, textRenderer, label, cx + 20, y + 2, Ui.WHITE, false);
+		int tx = sliderX(), tw = sliderW();
+		Ui.round(ctx, tx, y + 5, tw, 4, 2, Ui.argb(255, 70, 30, 36));
+		int fillW = (int) (tw * t);
+		Ui.round(ctx, tx, y + 5, Math.max(4, fillW), 4, 2, Ui.ACCENT);
+		Ui.circle(ctx, tx + fillW - 5, y + 2, 10, Ui.WHITE);
+		Ui.text(ctx, textRenderer, value, tx - 8 - Ui.width(textRenderer, value, false), y + 2, Ui.GRAY, false);
+	}
+
+	private int sliderX() { return cx + cw - 24 - Math.min(110, cw / 3); }
+	private int sliderW() { return Math.min(110, cw / 3); }
 
 	private void paintItem(DrawContext ctx, int mx, int my) {
 		KvConfig.Item it = items().get(sel - 1);
@@ -185,15 +189,20 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			return true;
 		}
 		if (sel == 0) {
-			int cardY = cy + 52;
-			int r0 = cardY + 14, r1 = cardY + 44, r2 = cardY + 74;
-			if (Ui.in(mx, my, cx + 14, r0 - 2, cw - 28, 16)) { cfg().showTitle = !cfg().showTitle; return true; }
-			if (Ui.in(mx, my, sliderX() - 6, r1 - 2, sliderW() + 12, 16)) { dragging = true; setOpacity(mx); return true; }
-			if (Ui.in(mx, my, cx + 14, cardY + 104 - 2, cw - 28, 16)) { cfg().customTitle = !cfg().customTitle; return true; }
-			if (Ui.in(mx, my, cx + 14, r2 - 2, cw - 28, 16)) {
+			int cardY = cardY();
+			if (Ui.in(mx, my, cx + 14, cardY + 8, cw - 28, 16)) { cfg().showTitle = !cfg().showTitle; return true; }
+			for (int id = 1; id <= 3; id++) {
+				if (Ui.in(mx, my, sliderX() - 6, cardY + 10 + 24 * id, sliderW() + 12, 16)) {
+					dragId = id;
+					setSlider(id, mx);
+					return true;
+				}
+			}
+			if (Ui.in(mx, my, cx + 14, cardY + 104, cw - 28, 16)) {
 				cfg().position = (cfg().position + 1) % KvConfig.POSITIONS.length;
 				return true;
 			}
+			if (Ui.in(mx, my, cx + 14, cardY + 128, cw - 28, 16)) { cfg().customTitle = !cfg().customTitle; return true; }
 		} else {
 			KvConfig.Item it = items().get(sel - 1);
 			int ry = cy + 140;
@@ -215,15 +224,19 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		return false;
 	}
 
-	private void setOpacity(double mx) {
+	private void setSlider(int id, double mx) {
 		float t = (float) ((mx - sliderX()) / sliderW());
 		t = Math.max(0f, Math.min(1f, t));
-		cfg().opacity = 0.1f + 0.9f * t;
+		switch (id) {
+			case 1 -> cfg().opacity = 0.1f + 0.9f * t;
+			case 2 -> cfg().hudScale = 0.6f + 0.9f * t;
+			default -> cfg().menuScale = 0.9f + 0.5f * t;
+		}
 	}
 
 	@Override
 	public boolean mouseDragged(Click click, double dx, double dy) {
-		if (dragging) { setOpacity(click.x()); return true; }
+		if (dragId != 0) { setSlider(dragId, click.x()); return true; }
 		if (moving) {
 			px = Math.max(0, Math.min(width - pw, (int) (click.x() - offX)));
 			py = Math.max(0, Math.min(height - ph, (int) (click.y() - offY)));
@@ -236,7 +249,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 
 	@Override
 	public boolean mouseReleased(Click click) {
-		dragging = false;
+		if (dragId == 3) { dragId = 0; init(); } // apply the new menu size
+		dragId = 0;
 		moving = false;
 		return super.mouseReleased(click);
 	}
