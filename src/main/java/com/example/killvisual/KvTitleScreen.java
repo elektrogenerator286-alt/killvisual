@@ -41,7 +41,7 @@ public final class KvTitleScreen extends Screen {
 	@Override
 	protected void init() {
 		int bh = 30, barTop = height - bh - 24;
-		int titleBottom = 112, gap = 12;
+		int titleBottom = 26, gap = 12;
 		int avail = barTop - 14 - titleBottom;
 		size = Math.max(32, Math.min(Math.min((avail - 2 * gap) / 3, (int) (Math.min(width, height) * 0.16)), 70));
 		int totalH = 3 * size + 2 * gap;
@@ -89,7 +89,14 @@ public final class KvTitleScreen extends Screen {
 
 	private int barX() { return 24; }
 	private int barH() { return 30; }
-	private int barW() { return Math.min((int) (width * 0.22), 200); }
+	private int barW() {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		int head = barH() - 8;
+		int w = 8 + head + 10 + Ui.width(textRenderer, mc.getSession().getUsername(), true)
+				+ 18 + Ui.width(textRenderer, "изменить", false) + 14;
+		if (editing) w = Math.max(w, 210);
+		return Math.min(w, width - 48);
+	}
 	private int barY() { return height - barH() - 24; }
 
 	private void startEditing() {
