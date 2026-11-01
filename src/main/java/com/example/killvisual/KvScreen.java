@@ -73,8 +73,13 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	public void renderBackground(DrawContext ctx, int mx, int my, float delta) {
 		super.renderBackground(ctx, mx, my, delta);
 		// panel
-		Ui.round(ctx, px - 1, py - 1, pw + 2, ph + 2, 14, Ui.argb(255, 40, 8, 14));
-		Ui.roundGradient(ctx, px, py, pw, ph, 14, Ui.argb(255, 10, 10, 12), Ui.argb(255, 96, 10, 22));
+		double tm = (System.currentTimeMillis() % 6000000L) / 1000.0;
+		float w1 = (float) (Math.sin(tm * 0.9) * 0.5 + 0.5), w2 = (float) (Math.sin(tm * 0.9 + 2.1) * 0.5 + 0.5);
+		Ui.round(ctx, px - 1, py - 1, pw + 2, ph + 2, 14,
+				Ui.argb(255, 40 + (int) (80 * w1), 8 + (int) (20 * w2), 14 + (int) (40 * w2)));
+		Ui.roundGradient(ctx, px, py, pw, ph, 14,
+				Ui.argb(255, 10 + (int) (60 * w2), 8 + (int) (6 * w1), 12 + (int) (28 * w1)),
+				Ui.argb(255, 60 + (int) (80 * w1), 8 + (int) (12 * w2), 20 + (int) (50 * w2)));
 		Ui.text(ctx, textRenderer, "KillVisual", px + 18, py + 14, Ui.ACCENT, true);
 		// close X
 		int xx = px + pw - 28, xy = py + 12;
