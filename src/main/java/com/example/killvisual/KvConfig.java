@@ -29,6 +29,8 @@ public final class KvConfig {
 	public float menuScale = 1.0f;
 	public boolean motionBlur = false;
 	public int blurLevel = 2;
+	public boolean armorHud = true;
+	public boolean enemyTags = true;
 	public int position = 0;
 	public List<Item> items = new ArrayList<>();
 
