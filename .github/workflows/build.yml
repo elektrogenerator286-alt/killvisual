@@ -23,15 +23,6 @@ jobs:
       - name: Build
         shell: bash
         run: gradle build --no-daemon 2>&1 | tee build.log
-      - name: Dump API
-        shell: bash
-        run: |
-          set +e +o pipefail
-          find ~/.gradle /home/runner/work -name "*.jar" -path "*loom*" 2>/dev/null | grep -i "mapped\|yarn\|named" > /tmp/list.txt; J=$(grep "minecraft-merged-1.21" /tmp/list.txt | grep -v intermediary | head -1); cat /tmp/list.txt > /tmp/api0.txt
-          cp /tmp/api0.txt /tmp/api.txt; echo "J=$J" >> /tmp/api.txt
-          javap -p -c -cp "$J" net.minecraft.client.gui.screen.ingame.HandledScreen | awk '/^  public void render\(|^  public void renderMain|^  public void renderBackground|^  protected void drawSlots/{p=1} /^$/{p=0} p' | grep -v "aload\|iload\|fload\|dload\|astore\|istore\|dup\|pop\|getfield\|ldc\|const\|bipush\|ifeq\|goto" >> /tmp/api.txt
-          git config user.name ci; git config user.email ci@users.noreply.github.com
-          git checkout --orphan info-log; git rm -rf --quiet . ; cp /tmp/api.txt api.txt; git add api.txt; git commit -q -m info; git push -f origin info-log
       - name: Save build log on failure
         if: failure()
         shell: bash
