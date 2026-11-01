@@ -1,0 +1,85 @@
+{
+ "targets": {
+  "history": {
+   "persistent": true,
+   "clear_color": 0
+  },
+  "out": {}
+ },
+ "passes": [
+  {
+   "vertex_shader": "minecraft:core/screenquad",
+   "fragment_shader": "killvisual:post/mb",
+   "inputs": [
+    {
+     "sampler_name": "Main",
+     "target": "minecraft:main"
+    },
+    {
+     "sampler_name": "History",
+     "target": "history"
+    }
+   ],
+   "output": "out",
+   "uniforms": {
+    "MbConfig": [
+     {
+      "name": "Strength",
+      "type": "float",
+      "value": 0.78
+     }
+    ]
+   }
+  },
+  {
+   "vertex_shader": "minecraft:core/screenquad",
+   "fragment_shader": "minecraft:post/blit",
+   "inputs": [
+    {
+     "sampler_name": "In",
+     "target": "out"
+    }
+   ],
+   "output": "minecraft:main",
+   "uniforms": {
+    "BlitConfig": [
+     {
+      "name": "ColorModulate",
+      "type": "vec4",
+      "value": [
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "vertex_shader": "minecraft:core/screenquad",
+   "fragment_shader": "minecraft:post/blit",
+   "inputs": [
+    {
+     "sampler_name": "In",
+     "target": "out"
+    }
+   ],
+   "output": "history",
+   "uniforms": {
+    "BlitConfig": [
+     {
+      "name": "ColorModulate",
+      "type": "vec4",
+      "value": [
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

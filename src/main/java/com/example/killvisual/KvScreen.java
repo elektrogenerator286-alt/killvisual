@@ -28,7 +28,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	@Override
 	protected void init() {
 		pw = Math.min(width - 20, (int) (400 * cfg().menuScale));
-		ph = Math.min(height - 20, (int) (285 * cfg().menuScale));
+		ph = Math.min(height - 20, (int) (320 * cfg().menuScale));
 		if (!placed) { px = (width - pw) / 2; py = (height - ph) / 2; placed = true; }
 		px = Math.max(0, Math.min(width - pw, px));
 		py = Math.max(0, Math.min(height - ph, py));
@@ -122,22 +122,24 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cardY(), cardH = Math.min(ch - 52, 152);
+		int cardY = cardY(), cardH = Math.min(ch - 52, 8 * 21 + 14);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
-		int r0 = cardY + 10;
-		Ui.circle(ctx, cx + 20, r0, 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, r0 + 2, Ui.WHITE, false);
-		slider(ctx, cardY + 34, "Прозрачность", (cfg().opacity - 0.1f) / 0.9f, Math.round(cfg().opacity * 100) + "%");
-		slider(ctx, cardY + 58, "Размер плашки", (cfg().hudScale - 0.6f) / 0.9f, String.format("x%.2f", cfg().hudScale));
-		slider(ctx, cardY + 82, "Размер меню", (cfg().menuScale - 0.9f) / 0.5f, String.format("x%.2f", cfg().menuScale));
-		int r4 = cardY + 106;
-		Ui.text(ctx, textRenderer, "Положение", cx + 20, r4 + 2, Ui.WHITE, false);
+		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, ry(0) + 2, Ui.WHITE, false);
+		slider(ctx, ry(1), "Прозрачность", (cfg().opacity - 0.1f) / 0.9f, Math.round(cfg().opacity * 100) + "%");
+		slider(ctx, ry(2), "Размер плашки", (cfg().hudScale - 0.6f) / 0.9f, String.format("x%.2f", cfg().hudScale));
+		slider(ctx, ry(3), "Размер меню", (cfg().menuScale - 0.9f) / 0.5f, String.format("x%.2f", cfg().menuScale));
+		Ui.text(ctx, textRenderer, "Положение", cx + 20, ry(4) + 2, Ui.WHITE, false);
 		String pos = KvConfig.POSITIONS[cfg().position];
-		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), r4 + 2, Ui.ACCENT, false);
-		int r5 = cardY + 130;
-		Ui.circle(ctx, cx + 20, r5, 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, r5 + 2, Ui.WHITE, false);
+		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), ry(4) + 2, Ui.ACCENT, false);
+		Ui.circle(ctx, cx + 20, ry(5), 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, ry(5) + 2, Ui.WHITE, false);
+		Ui.circle(ctx, cx + 20, ry(6), 12, cfg().motionBlur ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, KvMotionBlur.failed ? "Motion Blur (ошибка)" : "Motion Blur", cx + 40, ry(6) + 2, Ui.WHITE, false);
+		slider(ctx, ry(7), "Сила блюра", cfg().blurLevel / 4f, String.valueOf(cfg().blurLevel + 1));
 	}
+
+	private int ry(int i) { return cardY() + 8 + 21 * i; }
 
 	private int cardY() { return cy + 46; }
 
@@ -195,19 +197,29 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		}
 		if (sel == 0) {
 			int cardY = cardY();
-			if (Ui.in(mx, my, cx + 14, cardY + 8, cw - 28, 16)) { cfg().showTitle = !cfg().showTitle; return true; }
+			if (Ui.in(mx, my, cx + 14, ry(0) - 2, cw - 28, 18)) { cfg().showTitle = !cfg().showTitle; return true; }
 			for (int id = 1; id <= 3; id++) {
-				if (Ui.in(mx, my, sliderX() - 6, cardY + 10 + 24 * id, sliderW() + 12, 16)) {
+				if (Ui.in(mx, my, sliderX() - 6, ry(id) - 2, sliderW() + 12, 18)) {
 					dragId = id;
 					setSlider(id, mx);
 					return true;
 				}
 			}
-			if (Ui.in(mx, my, cx + 14, cardY + 104, cw - 28, 16)) {
+			if (Ui.in(mx, my, cx + 14, ry(4) - 2, cw - 28, 18)) {
 				cfg().position = (cfg().position + 1) % KvConfig.POSITIONS.length;
 				return true;
 			}
-			if (Ui.in(mx, my, cx + 14, cardY + 128, cw - 28, 16)) { cfg().customTitle = !cfg().customTitle; return true; }
+			if (Ui.in(mx, my, cx + 14, ry(5) - 2, cw - 28, 18)) { cfg().customTitle = !cfg().customTitle; return true; }
+			if (Ui.in(mx, my, cx + 14, ry(6) - 2, cw - 28, 18)) {
+				cfg().motionBlur = !cfg().motionBlur;
+				KvMotionBlur.failed = false;
+				return true;
+			}
+			if (Ui.in(mx, my, sliderX() - 6, ry(7) - 2, sliderW() + 12, 18)) {
+				dragId = 4;
+				setSlider(4, mx);
+				return true;
+			}
 		} else {
 			KvConfig.Item it = items().get(sel - 1);
 			int ry = cy + 140;
@@ -235,6 +247,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		switch (id) {
 			case 1 -> cfg().opacity = 0.1f + 0.9f * t;
 			case 2 -> cfg().hudScale = 0.6f + 0.9f * t;
+			case 4 -> cfg().blurLevel = Math.round(t * 4);
 			default -> cfg().menuScale = 0.9f + 0.5f * t;
 		}
 	}

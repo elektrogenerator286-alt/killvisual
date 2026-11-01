@@ -29,6 +29,8 @@ public final class KillVisualClient implements ClientModInitializer {
 			String n = KvConfig.INSTANCE.nick;
 			if (NickUtil.valid(n)) NickUtil.apply(n);
 		});
+		HudElementRegistry.attachElementBefore(VanillaHudElements.MISC_OVERLAYS,
+				Identifier.of("killvisual", "motion_blur"), KvMotionBlur::render);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
 				Identifier.of("killvisual", "fps_ping"), KvHud::render);
 	}
