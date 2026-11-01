@@ -30,6 +30,8 @@ public final class KvConfig {
 	public boolean motionBlur = false;
 	public int blurLevel = 2;
 	public int position = 0;
+	public boolean dragonfly = false;
+	public float dragonSpeed = 1.0f;
 	public List<Item> items = new ArrayList<>();
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

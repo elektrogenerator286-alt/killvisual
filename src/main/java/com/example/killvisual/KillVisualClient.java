@@ -15,12 +15,22 @@ public final class KillVisualClient implements ClientModInitializer {
 	private static final KeyBinding.Category CATEGORY =
 			KeyBinding.Category.create(Identifier.of("killvisual", "controls"));
 	private static KeyBinding menuKey;
+	private static KeyBinding flyKey;
 
 	@Override
 	public void onInitializeClient() {
 		menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.killvisual.menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
+		flyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+				"key.killvisual.dragonfly", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
 		ClientTickEvents.END_CLIENT_TICK.register(c -> {
+			while (flyKey.wasPressed()) {
+				if (c.currentScreen == null && c.player != null) {
+					KvConfig.INSTANCE.dragonfly = !KvConfig.INSTANCE.dragonfly;
+					KvConfig.save();
+				}
+			}
+			KvDragonfly.tick(c);
 			while (menuKey.wasPressed()) {
 				if (c.currentScreen == null && c.player != null) c.setScreen(new KvScreen());
 			}
