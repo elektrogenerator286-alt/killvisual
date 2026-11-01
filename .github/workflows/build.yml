@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set +e +o pipefail
-          find ~/.gradle /home/runner/work -name "*.jar" -path "*loom*" 2>/dev/null | grep -i "mapped\|yarn\|named" > /tmp/list.txt; J=$(grep -i "mapped" /tmp/list.txt | head -1); cat /tmp/list.txt > /tmp/api0.txt
+          find ~/.gradle /home/runner/work -name "*.jar" -path "*loom*" 2>/dev/null | grep -i "mapped\|yarn\|named" > /tmp/list.txt; J=$(grep "minecraft-merged-1.21" /tmp/list.txt | grep -v intermediary | head -1); cat /tmp/list.txt > /tmp/api0.txt
           cp /tmp/api0.txt /tmp/api.txt; echo "J=$J" >> /tmp/api.txt
           for c in net.minecraft.client.gl.Framebuffer net.minecraft.client.gl.SimpleFramebuffer net.minecraft.client.render.GameRenderer com.mojang.blaze3d.systems.CommandEncoder com.mojang.blaze3d.systems.RenderPass com.mojang.blaze3d.textures.GpuTexture com.mojang.blaze3d.textures.GpuTextureView net.minecraft.client.gl.RenderPipelines net.minecraft.client.gl.PostEffectProcessor net.minecraft.client.util.ObjectAllocator net.minecraft.client.gl.ShaderLoader net.minecraft.client.gl.PostEffectPipeline; do echo "=== $c" >> /tmp/api.txt; javap -p -cp "$J" $c >> /tmp/api.txt 2>&1; done
           javap -p -c -cp "$J" net.minecraft.client.render.GameRenderer | grep -n "invoke.*Framebuffer\|invokevirtual.*renderWorld\|invoke.*Gui\|invoke.*render(" | head -40 >> /tmp/api.txt
