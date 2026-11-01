@@ -11,6 +11,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int px, py, pw, ph;           // panel
 	private int sx, sy, sw, sh;           // sidebar
 	private int cx, cy, cw, ch;           // content
+	private static final int NT = 5;
+	private static final String[] TABS = { "Оформление", "Motion Blur", "ArmorHud", "Atmosphere", "Инвентарь" };
 	private int sel = 0;                  // 0 = Оформление, 1.. = custom items
 	private int scroll = 0;
 	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size
@@ -50,8 +52,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		clearChildren();
 		nameField = null;
 		noteField = null;
-		if (sel > 0 && sel <= items().size()) {
-			KvConfig.Item it = items().get(sel - 1);
+		if (sel >= NT && sel - NT < items().size()) {
+			KvConfig.Item it = items().get(sel - NT);
 			nameField = new TextFieldWidget(textRenderer, cx + 16, cy + 62, cw - 32, 20, Text.empty());
 			nameField.setMaxLength(24);
 			nameField.setText(it.name);
@@ -62,7 +64,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			noteField.setText(it.note);
 			noteField.setChangedListener(s -> it.note = s);
 			addDrawableChild(noteField);
-		} else {
+		} else if (sel >= NT) {
 			sel = 0;
 		}
 	}
@@ -90,7 +92,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		// sidebar
 		Ui.round(ctx, sx, sy, sw, sh, 12, Ui.argb(255, 4, 4, 5));
 		ctx.enableScissor(sx, sy, sx + sw, sy + sh);
-		int total = items().size() + 2;
+		int total = items().size() + NT + 1;
 		for (int i = 0; i < total; i++) {
 			int ry = sy + 6 + i * ROW - scroll;
 			if (ry + ROW < sy || ry > sy + sh) continue;
@@ -106,51 +108,59 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			} else if (hover) {
 				Ui.round(ctx, sx + 6, ry, sw - 12, ROW - 2, 10, Ui.argb(255, 24, 10, 12));
 			}
-			String name = i == 0 ? "Оформление" : items().get(i - 1).name;
+			String name = i < NT ? TABS[i] : items().get(i - NT).name;
 			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
 			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
-			boolean on = i == 0 || items().get(i - 1).done;
+			boolean on = switch (i) { case 0 -> true; case 1 -> cfg().motionBlur; case 2 -> cfg().armorHud || cfg().enemyTags; case 3 -> cfg().atmo != 0; case 4 -> cfg().invFx; default -> items().get(i - NT).done; };
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
 		ctx.disableScissor();
 		// content
 		Ui.round(ctx, cx, cy, cw, ch, 12, Ui.argb(255, 38, 4, 10));
-		if (sel == 0) paintAppearance(ctx, mx, my); else paintItem(ctx, mx, my);
+		if (sel < NT) paintTab(ctx, mx, my); else paintItem(ctx, mx, my);
 	}
 
-	private void paintAppearance(DrawContext ctx, int mx, int my) {
+	private void paintTab(DrawContext ctx, int mx, int my) {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
-		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, TABS[sel], cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cardY(), cardH = 11 * rowH() + 10;
-		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
-		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, ry(0) + 2, Ui.WHITE, false);
-		slider(ctx, ry(1), "Прозрачность", (cfg().opacity - 0.1f) / 0.9f, Math.round(cfg().opacity * 100) + "%");
-		slider(ctx, ry(2), "Размер плашки", (cfg().hudScale - 0.6f) / 0.9f, String.format("x%.2f", cfg().hudScale));
-		slider(ctx, ry(3), "Размер меню", (cfg().menuScale - 0.9f) / 0.5f, String.format("x%.2f", cfg().menuScale));
-		Ui.text(ctx, textRenderer, "Положение", cx + 20, ry(4) + 2, Ui.WHITE, false);
-		String pos = KvConfig.POSITIONS[cfg().position];
-		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), ry(4) + 2, Ui.ACCENT, false);
-		Ui.circle(ctx, cx + 20, ry(5), 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, ry(5) + 2, Ui.WHITE, false);
-		Ui.circle(ctx, cx + 20, ry(6), 12, cfg().motionBlur ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, KvMotionBlur.failed ? "Motion Blur (ошибка)" : "Motion Blur", cx + 40, ry(6) + 2, Ui.WHITE, false);
-		slider(ctx, ry(7), "Сила блюра", cfg().blurLevel / 4f, String.valueOf(cfg().blurLevel + 1));
-		int half = (cw - 16) / 2;
-		Ui.circle(ctx, cx + 20, ry(8), 12, cfg().armorHud ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "ArmorHud", cx + 40, ry(8) + 2, Ui.WHITE, false);
-		Ui.circle(ctx, cx + 20 + half, ry(8), 12, cfg().enemyTags ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Таблички", cx + 40 + half, ry(8) + 2, Ui.WHITE, false);
-		Ui.text(ctx, textRenderer, "Atmosphere", cx + 20, ry(9) + 2, Ui.WHITE, false);
-		String at = KvConfig.ATMOS[cfg().atmo];
-		Ui.text(ctx, textRenderer, at, cx + 20 + half - 12 - Ui.width(textRenderer, at, false), ry(9) + 2, Ui.ACCENT, false);
-		Ui.circle(ctx, cx + 20 + half, ry(9), 12, cfg().invFx ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, "Фон инвентаря", cx + 40 + half, ry(9) + 2, Ui.WHITE, false);
-		slider(ctx, ry(10), "Сила атмосферы", cfg().atmoPower, Math.round(cfg().atmoPower * 100) + "%");
+		int rows = switch (sel) { case 0 -> 6; case 1 -> 2; case 2 -> 2; case 3 -> 2; default -> 1; };
+		Ui.round(ctx, cx + 8, cardY(), cw - 16, rows * rowH() + 10, 10, Ui.argb(255, 26, 2, 6));
+		switch (sel) {
+			case 0 -> {
+				toggle(ctx, 0, "Название на панели", cfg().showTitle);
+				slider(ctx, ry(1), "Прозрачность", (cfg().opacity - 0.1f) / 0.9f, Math.round(cfg().opacity * 100) + "%");
+				slider(ctx, ry(2), "Размер плашки", (cfg().hudScale - 0.6f) / 0.9f, String.format("x%.2f", cfg().hudScale));
+				slider(ctx, ry(3), "Размер меню", (cfg().menuScale - 0.9f) / 0.5f, String.format("x%.2f", cfg().menuScale));
+				Ui.text(ctx, textRenderer, "Положение", cx + 20, ry(4) + 2, Ui.WHITE, false);
+				String pos = KvConfig.POSITIONS[cfg().position];
+				Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), ry(4) + 2, Ui.ACCENT, false);
+				toggle(ctx, 5, "Свое главное меню", cfg().customTitle);
+			}
+			case 1 -> {
+				toggle(ctx, 0, KvMotionBlur.failed ? "Motion Blur (ошибка)" : "Motion Blur", cfg().motionBlur);
+				slider(ctx, ry(1), "Сила блюра", cfg().blurLevel / 4f, String.valueOf(cfg().blurLevel + 1));
+			}
+			case 2 -> {
+				toggle(ctx, 0, "ArmorHud", cfg().armorHud);
+				toggle(ctx, 1, "Таблички над игроками", cfg().enemyTags);
+			}
+			case 3 -> {
+				Ui.text(ctx, textRenderer, "Режим", cx + 20, ry(0) + 2, Ui.WHITE, false);
+				String at = KvConfig.ATMOS[cfg().atmo];
+				Ui.text(ctx, textRenderer, at, cx + cw - 24 - Ui.width(textRenderer, at, false), ry(0) + 2, Ui.ACCENT, false);
+				slider(ctx, ry(1), "Сила", cfg().atmoPower, Math.round(cfg().atmoPower * 100) + "%");
+			}
+			default -> toggle(ctx, 0, "Переливающийся инвентарь", cfg().invFx);
+		}
 	}
 
-	private int rowH() { return Math.max(14, Math.min(19, (ph - 104) / 11)); }
+	private void toggle(DrawContext ctx, int row, String label, boolean on) {
+		Ui.circle(ctx, cx + 20, ry(row), 12, on ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, label, cx + 40, ry(row) + 2, Ui.WHITE, false);
+	}
+
+	private int rowH() { return 21; }
 
 	private int ry(int i) { return cardY() + 6 + rowH() * i; }
 
@@ -171,7 +181,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int sliderW() { return Math.min(110, cw / 3); }
 
 	private void paintItem(DrawContext ctx, int mx, int my) {
-		KvConfig.Item it = items().get(sel - 1);
+		KvConfig.Item it = items().get(sel - NT);
 		Ui.circle(ctx, cx + 16, cy + 14, 14, it.done ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Свой пункт", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "вспомогатель: идеи и заметки", cx + 16, cy + 36, Ui.GRAY, false);
@@ -196,59 +206,51 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		// sidebar
 		if (Ui.in(mx, my, sx, sy, sw, sh)) {
 			int idx = (int) ((my - sy - 6 + scroll) / ROW);
-			int total = items().size() + 2;
+			int total = items().size() + NT + 1;
 			if (idx >= 0 && idx < total - 1) {
 				sel = idx;
 				rebuild();
 			} else if (idx == total - 1) {
 				items().add(new KvConfig.Item());
-				sel = items().size();
+				sel = NT + items().size() - 1;
 				rebuild();
 				if (nameField != null) setFocused(nameField);
 			}
 			return true;
 		}
-		if (sel == 0) {
-			int cardY = cardY();
-			if (Ui.in(mx, my, cx + 14, ry(0) - 2, cw - 28, 18)) { cfg().showTitle = !cfg().showTitle; return true; }
-			for (int id = 1; id <= 3; id++) {
-				if (Ui.in(mx, my, sliderX() - 6, ry(id) - 2, sliderW() + 12, 18)) {
-					dragId = id;
-					setSlider(id, mx);
-					return true;
+		if (sel < NT) {
+			boolean[] hit = new boolean[8];
+			for (int r = 0; r < 8; r++) hit[r] = Ui.in(mx, my, cx + 14, ry(r) - 2, cw - 28, 18);
+			switch (sel) {
+				case 0 -> {
+					if (hit[0]) cfg().showTitle = !cfg().showTitle;
+					else if (hit[4]) cfg().position = (cfg().position + 1) % KvConfig.POSITIONS.length;
+					else if (hit[5]) cfg().customTitle = !cfg().customTitle;
+					else for (int id = 1; id <= 3; id++) {
+						if (hit[id]) { dragId = id; setSlider(id, mx); }
+					}
 				}
+				case 1 -> {
+					if (hit[0]) { cfg().motionBlur = !cfg().motionBlur; KvMotionBlur.failed = false; }
+					else if (hit[1]) { dragId = 4; setSlider(4, mx); }
+				}
+				case 2 -> {
+					if (hit[0]) cfg().armorHud = !cfg().armorHud;
+					else if (hit[1]) cfg().enemyTags = !cfg().enemyTags;
+				}
+				case 3 -> {
+					if (hit[0]) cfg().atmo = (cfg().atmo + 1) % KvConfig.ATMOS.length;
+					else if (hit[1]) { dragId = 5; setSlider(5, mx); }
+				}
+				default -> { if (hit[0]) cfg().invFx = !cfg().invFx; }
 			}
-			if (Ui.in(mx, my, cx + 14, ry(4) - 2, cw - 28, 18)) {
-				cfg().position = (cfg().position + 1) % KvConfig.POSITIONS.length;
-				return true;
-			}
-			if (Ui.in(mx, my, cx + 14, ry(5) - 2, cw - 28, 18)) { cfg().customTitle = !cfg().customTitle; return true; }
-			if (Ui.in(mx, my, cx + 14, ry(6) - 2, cw - 28, 18)) {
-				cfg().motionBlur = !cfg().motionBlur;
-				KvMotionBlur.failed = false;
-				return true;
-			}
-			int half = (cw - 16) / 2;
-			if (Ui.in(mx, my, cx + 14, ry(8) - 2, half - 4, 18)) { cfg().armorHud = !cfg().armorHud; return true; }
-			if (Ui.in(mx, my, cx + 14 + half, ry(8) - 2, half - 4, 18)) { cfg().enemyTags = !cfg().enemyTags; return true; }
-			if (Ui.in(mx, my, cx + 14, ry(9) - 2, half - 4, 18)) { cfg().atmo = (cfg().atmo + 1) % KvConfig.ATMOS.length; return true; }
-			if (Ui.in(mx, my, cx + 14 + half, ry(9) - 2, half - 4, 18)) { cfg().invFx = !cfg().invFx; return true; }
-			if (Ui.in(mx, my, sliderX() - 6, ry(10) - 2, sliderW() + 12, 18)) {
-				dragId = 5;
-				setSlider(5, mx);
-				return true;
-			}
-			if (Ui.in(mx, my, sliderX() - 6, ry(7) - 2, sliderW() + 12, 18)) {
-				dragId = 4;
-				setSlider(4, mx);
-				return true;
-			}
+			return true;
 		} else {
-			KvConfig.Item it = items().get(sel - 1);
+			KvConfig.Item it = items().get(sel - NT);
 			int ry = cy + 140;
 			if (Ui.in(mx, my, cx + 14, ry - 2, 140, 16)) { it.done = !it.done; return true; }
 			if (Ui.in(mx, my, cx + 16, ry + 24, 120, 14)) {
-				items().remove(sel - 1);
+				items().remove(sel - NT);
 				sel = 0;
 				rebuild();
 				return true;
