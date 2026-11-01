@@ -28,13 +28,15 @@ jobs:
         shell: bash
         run: |
           set +e +o pipefail
-          find / -name "*.jar" -path "*loom*" 2>/dev/null | grep -i -v "sources" | head -40 > /tmp/jars.txt
-          J=$(grep -i "minecraft" /tmp/jars.txt | grep -i "merged\|named\|mapped" | head -1)
-          cat /tmp/jars.txt > /tmp/api.txt; echo "JAR=$J" >> /tmp/api.txt
-          for c in net.minecraft.client.gl.Framebuffer net.minecraft.client.gl.SimpleFramebuffer net.minecraft.client.render.GameRenderer com.mojang.blaze3d.systems.CommandEncoder com.mojang.blaze3d.textures.GpuTexture com.mojang.blaze3d.systems.RenderPass com.mojang.blaze3d.systems.RenderSystem net.minecraft.client.render.RenderTickCounter; do
+          J=$(find ~/.gradle/caches/fabric-loom/minecraftMaven -name "minecraft-merged-1.21.11-net.fabricmc.yarn*.jar" | head -1)
+          echo "JAR=$J" > /tmp/api.txt
+          C=$(find ~/.gradle/caches/fabric-loom/1.21.11 -name minecraft-client.jar | head -1)
+          unzip -l "$C" | grep -i "post_effect\|shaders/post" | awk '{print $4}' >> /tmp/api.txt
+          for c in net.minecraft.client.gl.Framebuffer net.minecraft.client.gl.PostEffectProcessor net.minecraft.client.gl.PostEffectPipeline net.minecraft.client.render.GameRenderer net.minecraft.client.gl.ShaderLoader; do
             echo "== $c" >> /tmp/api.txt
-            javap -cp "$J" -public $c 2>&1 | head -120 >> /tmp/api.txt
+            javap -cp "$J" -public $c 2>&1 | head -90 >> /tmp/api.txt
           done
+          for f in post_effect/transparency.json post_effect/blur.json; do echo "== $f" >> /tmp/api.txt; unzip -p "$C" assets/minecraft/$f >> /tmp/api.txt 2>&1; done
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           git checkout --orphan info-log; git rm -rf --quiet . ; cp /tmp/api.txt api.txt
           git add api.txt; git commit -q -m api; git push -f origin info-log
