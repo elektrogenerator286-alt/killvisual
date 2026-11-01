@@ -17,7 +17,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private TextFieldWidget nameField, noteField;
 
 	private static final int ROW = 22;
-	private static final int BASE = 2;       // 0 = Оформление, 1 = Dragonfly, BASE.. = custom items
+	private static final int BASE = 3;       // 0 = Оформление, 1 = Dragonfly, 2 = Motion Blur, BASE.. = custom items
 	private boolean placed, moving;
 	private int offX, offY;
 
@@ -63,7 +63,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			noteField.setText(it.note);
 			noteField.setChangedListener(s -> it.note = s);
 			addDrawableChild(noteField);
-		} else if (sel != 1) {
+		} else if (sel != 1 && sel != 2) {
 			sel = 0;
 		}
 	}
@@ -107,10 +107,10 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			} else if (hover) {
 				Ui.round(ctx, sx + 6, ry, sw - 12, ROW - 2, 10, Ui.argb(255, 24, 10, 12));
 			}
-			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : items().get(i - BASE).name;
+			String name = i == 0 ? "Оформление" : i == 1 ? "Dragonfly" : i == 2 ? "Motion Blur" : items().get(i - BASE).name;
 			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
 			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
-			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : items().get(i - BASE).done);
+			boolean on = i == 0 || (i == 1 ? cfg().dragonfly : i == 2 ? cfg().motionBlur : items().get(i - BASE).done);
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
 		ctx.disableScissor();
@@ -118,6 +118,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.round(ctx, cx, cy, cw, ch, 12, Ui.argb(255, 38, 4, 10));
 		if (sel == 0) paintAppearance(ctx, mx, my);
 		else if (sel == 1) paintDragonfly(ctx);
+		else if (sel == 2) paintMotionBlur(ctx);
 		else paintItem(ctx, mx, my);
 	}
 
@@ -125,7 +126,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cardY(), cardH = Math.min(ch - 52, 8 * 21 + 14);
+		int cardY = cardY(), cardH = Math.min(ch - 52, 6 * 21 + 14);
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
 		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, ry(0) + 2, Ui.WHITE, false);
@@ -137,9 +138,16 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.text(ctx, textRenderer, pos, cx + cw - 24 - Ui.width(textRenderer, pos, false), ry(4) + 2, Ui.ACCENT, false);
 		Ui.circle(ctx, cx + 20, ry(5), 12, cfg().customTitle ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Свое главное меню", cx + 40, ry(5) + 2, Ui.WHITE, false);
-		Ui.circle(ctx, cx + 20, ry(6), 12, cfg().motionBlur ? Ui.ACCENT : Ui.DIM);
-		Ui.text(ctx, textRenderer, KvMotionBlur.failed ? "Motion Blur (ошибка)" : "Motion Blur", cx + 40, ry(6) + 2, Ui.WHITE, false);
-		slider(ctx, ry(7), "Сила блюра", cfg().blurLevel / 4f, String.valueOf(cfg().blurLevel + 1));
+	}
+
+	private void paintMotionBlur(DrawContext ctx) {
+		Ui.circle(ctx, cx + 16, cy + 14, 14, cfg().motionBlur ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, "Motion Blur", cx + 38, cy + 17, Ui.WHITE, true);
+		Ui.text(ctx, textRenderer, "размытие при движении", cx + 16, cy + 36, Ui.GRAY, false);
+		Ui.round(ctx, cx + 8, cardY(), cw - 16, 2 * 21 + 14, 10, Ui.argb(255, 26, 2, 6));
+		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().motionBlur ? Ui.ACCENT : Ui.DIM);
+		Ui.text(ctx, textRenderer, KvMotionBlur.failed ? "Motion Blur (ошибка)" : "Motion Blur включён", cx + 40, ry(0) + 2, Ui.WHITE, false);
+		slider(ctx, ry(1), "Сила блюра", cfg().blurLevel / 4f, String.valueOf(cfg().blurLevel + 1));
 	}
 
 	private void paintDragonfly(DrawContext ctx) {
@@ -224,12 +232,13 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				return true;
 			}
 			if (Ui.in(mx, my, cx + 14, ry(5) - 2, cw - 28, 18)) { cfg().customTitle = !cfg().customTitle; return true; }
-			if (Ui.in(mx, my, cx + 14, ry(6) - 2, cw - 28, 18)) {
+		} else if (sel == 2) {
+			if (Ui.in(mx, my, cx + 14, ry(0) - 2, cw - 28, 18)) {
 				cfg().motionBlur = !cfg().motionBlur;
 				KvMotionBlur.failed = false;
 				return true;
 			}
-			if (Ui.in(mx, my, sliderX() - 6, ry(7) - 2, sliderW() + 12, 18)) {
+			if (Ui.in(mx, my, sliderX() - 6, ry(1) - 2, sliderW() + 12, 18)) {
 				dragId = 4;
 				setSlider(4, mx);
 				return true;
