@@ -24,26 +24,15 @@ jobs:
         shell: bash
         run: gradle build --no-daemon 2>&1 | tee build.log
       - name: Dump API
-        if: always()
         shell: bash
         run: |
           set +e +o pipefail
-          J=$(find ~/.gradle/caches/fabric-loom/minecraftMaven -name "minecraft-merged-1.21.11-net.fabricmc.yarn*.jar" | head -1)
-          echo "JAR=$J" > /tmp/api.txt
-          C=$(find ~/.gradle/caches/fabric-loom/1.21.11 -name minecraft-client.jar | head -1)
-          unzip -l "$C" | grep -i "post_effect\|shaders/post" | awk '{print $4}' >> /tmp/api.txt
-          for c in 'net.minecraft.client.gl.PostEffectPipeline$Input' 'net.minecraft.client.gl.PostEffectPipeline$TextureSampler' 'net.minecraft.client.gl.PostEffectPipeline$TargetSampler' 'net.minecraft.client.gl.PostEffectPipeline$Pass' 'net.minecraft.client.gl.PostEffectPipeline$Targets' 'net.minecraft.client.gl.PostEffectProcessor$FramebufferSet' net.minecraft.client.texture.NativeImageBackedTexture net.minecraft.client.texture.AbstractTexture net.minecraft.client.util.memory.ObjectAllocator net.minecraft.client.MinecraftClient; do
-            echo "== $c" >> /tmp/api.txt
-            javap -cp "$J" -public -s "$c" 2>&1 | grep -v "^  *descriptor" | head -70 >> /tmp/api.txt
-          done
-          javap -cp "$J" -public net.minecraft.client.gl.PostEffectProcessor | grep parseEffect >> /tmp/api.txt
-          javap -cp "$J" -public net.minecraft.client.MinecraftClient | grep -i "getFramebuffer\|getTextureManager\|getShaderLoader\|getPostEffect" >> /tmp/api.txt
-          echo "== blit.fsh" >> /tmp/api.txt; unzip -p "$C" assets/minecraft/shaders/post/blit.fsh >> /tmp/api.txt
-          echo "== post/box_blur.fsh" >> /tmp/api.txt; unzip -p "$C" assets/minecraft/shaders/post/box_blur.fsh >> /tmp/api.txt
-          echo "== screenquad" >> /tmp/api.txt; unzip -l "$C" | grep -i "screenquad\|blit" | awk '{print $4}' >> /tmp/api.txt
-          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
-          git checkout --orphan info-log; git rm -rf --quiet . ; cp /tmp/api.txt api.txt
-          git add api.txt; git commit -q -m api; git push -f origin info-log
+          J=$(find ~/.gradle /home/runner/work -name "*minecraft*merged*named*.jar" -o -name "*minecraft-merged*.jar" 2>/dev/null | head -1)
+          echo "$J" > /tmp/api.txt
+          for c in net.minecraft.client.gl.Framebuffer net.minecraft.client.gl.SimpleFramebuffer net.minecraft.client.render.GameRenderer com.mojang.blaze3d.systems.CommandEncoder com.mojang.blaze3d.systems.RenderPass com.mojang.blaze3d.textures.GpuTexture com.mojang.blaze3d.textures.GpuTextureView net.minecraft.client.gl.RenderPipelines net.minecraft.client.gl.PostEffectProcessor net.minecraft.client.util.ObjectAllocator net.minecraft.client.gl.ShaderLoader net.minecraft.client.gl.PostEffectPipeline; do echo "=== $c" >> /tmp/api.txt; javap -p -cp "$J" $c >> /tmp/api.txt 2>&1; done
+          javap -p -c -cp "$J" net.minecraft.client.render.GameRenderer | grep -n "invoke.*Framebuffer\|invokevirtual.*renderWorld\|invoke.*Gui\|invoke.*render(" | head -40 >> /tmp/api.txt
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git checkout --orphan info-log; git rm -rf --quiet . ; cp /tmp/api.txt api.txt; git add api.txt; git commit -q -m info; git push -f origin info-log
       - name: Save build log on failure
         if: failure()
         shell: bash
