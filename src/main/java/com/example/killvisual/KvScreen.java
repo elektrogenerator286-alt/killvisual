@@ -122,7 +122,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, "Оформление", cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int cardY = cardY(), cardH = Math.min(ch - 52, 11 * 19 + 14);
+		int cardY = cardY(), cardH = 11 * rowH() + 10;
 		Ui.round(ctx, cx + 8, cardY, cw - 16, cardH, 10, Ui.argb(255, 26, 2, 6));
 		Ui.circle(ctx, cx + 20, ry(0), 12, cfg().showTitle ? Ui.ACCENT : Ui.DIM);
 		Ui.text(ctx, textRenderer, "Название на панели", cx + 40, ry(0) + 2, Ui.WHITE, false);
@@ -150,7 +150,9 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		slider(ctx, ry(10), "Сила атмосферы", cfg().atmoPower, Math.round(cfg().atmoPower * 100) + "%");
 	}
 
-	private int ry(int i) { return cardY() + 6 + 19 * i; }
+	private int rowH() { return Math.max(14, Math.min(19, (ph - 104) / 11)); }
+
+	private int ry(int i) { return cardY() + 6 + rowH() * i; }
 
 	private int cardY() { return cy + 46; }
 
