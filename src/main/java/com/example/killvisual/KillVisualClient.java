@@ -25,6 +25,12 @@ public final class KillVisualClient implements ClientModInitializer {
 				if (c.currentScreen == null && c.player != null) c.setScreen(new KvScreen());
 			}
 		});
+		ClientTickEvents.END_CLIENT_TICK.register(c -> {
+			if (c.player == null) return;
+			var ab = c.player.getAbilities();
+			KvConfig cf = KvConfig.INSTANCE;
+			ab.setFlySpeed(cf.dragonFly && ab.allowFlying ? 0.05f * cf.flyMult : 0.05f);
+		});
 		ClientLifecycleEvents.CLIENT_STARTED.register(c -> {
 			String n = KvConfig.INSTANCE.nick;
 			if (NickUtil.valid(n)) NickUtil.apply(n);

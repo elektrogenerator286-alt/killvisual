@@ -11,8 +11,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 	private int px, py, pw, ph;           // panel
 	private int sx, sy, sw, sh;           // sidebar
 	private int cx, cy, cw, ch;           // content
-	private static final int NT = 5;
-	private static final String[] TABS = { "Оформление", "Motion Blur", "ArmorHud", "Atmosphere", "Инвентарь" };
+	private static final int NT = 6;
+	private static final String[] TABS = { "Оформление", "Motion Blur", "ArmorHud", "Atmosphere", "Инвентарь", "DragonFly" };
 	private int sel = 0;                  // 0 = Оформление, 1.. = custom items
 	private int scroll = 0;
 	private int dragId;   // which slider is being dragged: 1 opacity, 2 HUD size, 3 menu size
@@ -111,7 +111,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			String name = i < NT ? TABS[i] : items().get(i - NT).name;
 			while (Ui.width(textRenderer, name, false) > sw - 54 && name.length() > 1) name = name.substring(0, name.length() - 1);
 			Ui.text(ctx, textRenderer, name, sx + 22, ry + 8, selected ? Ui.WHITE : Ui.GRAY, false);
-			boolean on = switch (i) { case 0 -> true; case 1 -> cfg().motionBlur; case 2 -> cfg().armorHud || cfg().enemyTags; case 3 -> cfg().atmo != 0; case 4 -> cfg().invFx; default -> items().get(i - NT).done; };
+			boolean on = switch (i) { case 0 -> true; case 1 -> cfg().motionBlur; case 2 -> cfg().armorHud || cfg().enemyTags; case 3 -> cfg().atmo != 0; case 4 -> cfg().invFx; case 5 -> cfg().dragonFly; default -> items().get(i - NT).done; };
 			Ui.circle(ctx, sx + sw - 24, ry + 7, 8, on ? Ui.ACCENT : Ui.DIM);
 		}
 		ctx.disableScissor();
@@ -124,8 +124,8 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 		Ui.circle(ctx, cx + 16, cy + 14, 14, Ui.ACCENT);
 		Ui.text(ctx, textRenderer, TABS[sel], cx + 38, cy + 17, Ui.WHITE, true);
 		Ui.text(ctx, textRenderer, "настройки функции", cx + 16, cy + 36, Ui.GRAY, false);
-		int rows = switch (sel) { case 0 -> 6; case 1 -> 2; case 2 -> 2; case 3 -> 2; default -> 1; };
-		Ui.round(ctx, cx + 8, cardY(), cw - 16, rows * rowH() + 10, 10, Ui.argb(255, 26, 2, 6));
+		int rows = switch (sel) { case 0 -> 6; case 1 -> 2; case 2 -> 2; case 3 -> 2; case 5 -> 2; default -> 1; };
+		Ui.round(ctx, cx + 8, cardY(), cw - 16, rows * rowH() + 10 + (sel == 5 ? 12 : 0), 10, Ui.argb(255, 26, 2, 6));
 		switch (sel) {
 			case 0 -> {
 				toggle(ctx, 0, "Название на панели", cfg().showTitle);
@@ -151,7 +151,12 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 				Ui.text(ctx, textRenderer, at, cx + cw - 24 - Ui.width(textRenderer, at, false), ry(0) + 2, Ui.ACCENT, false);
 				slider(ctx, ry(1), "Сила", cfg().atmoPower, Math.round(cfg().atmoPower * 100) + "%");
 			}
-			default -> toggle(ctx, 0, "Переливающийся инвентарь", cfg().invFx);
+			case 4 -> toggle(ctx, 0, "Переливающийся инвентарь", cfg().invFx);
+			default -> {
+				toggle(ctx, 0, "DragonFly", cfg().dragonFly);
+				slider(ctx, ry(1), "Скорость полета", (cfg().flyMult - 1f) / 5f, String.format("x%.1f", cfg().flyMult));
+				Ui.text(ctx, textRenderer, "Только там, где полет уже разрешен", cx + 20, ry(2) + 4, Ui.GRAY, false);
+			}
 		}
 	}
 
@@ -242,7 +247,11 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 					if (hit[0]) cfg().atmo = (cfg().atmo + 1) % KvConfig.ATMOS.length;
 					else if (hit[1]) { dragId = 5; setSlider(5, mx); }
 				}
-				default -> { if (hit[0]) cfg().invFx = !cfg().invFx; }
+				case 4 -> { if (hit[0]) cfg().invFx = !cfg().invFx; }
+				default -> {
+					if (hit[0]) cfg().dragonFly = !cfg().dragonFly;
+					else if (hit[1]) { dragId = 6; setSlider(6, mx); }
+				}
 			}
 			return true;
 		} else {
@@ -274,6 +283,7 @@ public final class KvScreen extends net.minecraft.client.gui.screen.Screen {
 			case 2 -> cfg().hudScale = 0.6f + 0.9f * t;
 			case 4 -> cfg().blurLevel = Math.round(t * 4);
 			case 5 -> cfg().atmoPower = t;
+			case 6 -> cfg().flyMult = Math.round((1f + 5f * t) * 10f) / 10f;
 			default -> cfg().menuScale = 0.9f + 0.5f * t;
 		}
 	}

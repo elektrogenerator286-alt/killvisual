@@ -32,6 +32,8 @@ public final class KvConfig {
 	public int atmo = 0;
 	public float atmoPower = 0.5f;
 	public boolean invFx = true;
+	public boolean dragonFly = false;
+	public float flyMult = 2.0f;
 	public boolean armorHud = true;
 	public boolean enemyTags = true;
 	public int position = 0;
